@@ -90,7 +90,7 @@ func TestCustomDurationBatch(t *testing.T) {
 	}
 
 	dev := newDevice(t, e)
-	st, body = dev.activate(t, batch.Cards[0], "cdfp", []string{"cd-1", "cd-2", "cd-3"})
+	st, body = dev.activate(t, batch.Cards[0], "cdfp", comp("cdfp"))
 	if st != 200 {
 		t.Fatalf("activate: %d %s", st, body)
 	}
@@ -140,7 +140,7 @@ func TestAdminLicenseExtend(t *testing.T) {
 	e := setupEnv(t)
 	fx := seedFixture(t, e)
 	dev := newDevice(t, e)
-	st, body := dev.activate(t, fx.Batch[6], "exfp", []string{"ex-1", "ex-2", "ex-3"})
+	st, body := dev.activate(t, fx.Batch[6], "exfp", comp("exfp"))
 	if st != 200 {
 		t.Fatalf("activate: %d %s", st, body)
 	}

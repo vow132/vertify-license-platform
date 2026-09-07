@@ -22,7 +22,6 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -35,6 +34,11 @@ import (
 )
 
 // ===== 测试环境 =====
+
+// BootstrapAdmin 创建的初始管理员带 must_change_password 标记，
+// 测试助手登录后必须先完成一次真实改密，才能调用管理接口。
+// 每个测试使用独立的随机管理员用户名，避免共享数据库中的密码/锁定状态互相污染。
+const adminInitialPassword = "root-password-123"
 
 type testEnv struct {
 	ts     *httptest.Server
@@ -87,6 +91,8 @@ func setupEnv(t *testing.T) *testEnv {
 	cfg := &config.Config{
 		Env:                      "dev",
 		CardHMACKey:              randBytes(t, 32),
+		CardEncKeys:              map[string][]byte{"enc-test-a": randBytes(t, 32)},
+		CardEncActive:            "enc-test-a",
 		AdminSessionTTL:          time.Hour,
 		ReplayWindow:             5 * time.Minute,
 		MaxClockSkew:             2 * time.Minute,
@@ -108,7 +114,12 @@ func setupEnv(t *testing.T) *testEnv {
 
 	jar, _ := cookiejar.New(nil)
 	env := &testEnv{ts: ts, client: &http.Client{Jar: jar}, svc: svc, cache: ca, keys: signer}
-	env.admin = &adminClient{env: env}
+	// 每个测试一个独立管理员：避免共享库中的密码/锁定状态跨测试污染
+	username := fmt.Sprintf("root-%d", randSuffix(t))
+	if _, err := svc.BootstrapAdmin(ctx, username, adminInitialPassword, ""); err != nil {
+		t.Fatalf("bootstrap admin: %v", err)
+	}
+	env.admin = &adminClient{env: env, username: username, password: adminInitialPassword}
 	return env
 }
 
@@ -153,23 +164,53 @@ func (e *testEnv) get(path string, hdr map[string]string) (int, []byte) {
 // ===== 管理端客户端 =====
 
 type adminClient struct {
-	env  *testEnv
-	csrf string
+	env      *testEnv
+	username string
+	password string
+	csrf     string
 }
 
 func (a *adminClient) login(t *testing.T) {
 	t.Helper()
 	st, body := a.env.post("/admin/v1/auth/login", mustJSON(map[string]any{
-		"username": "root", "password": "root-password-123",
+		"username": a.username, "password": a.password,
 	}), nil)
 	if st != 200 {
 		t.Fatalf("admin login: %d %s", st, body)
 	}
 	var out struct {
 		CSRFToken string `json:"csrf_token"`
+		Admin     struct {
+			MustChangePassword bool `json:"must_change_password"`
+		} `json:"admin"`
 	}
-	_ = json.Unmarshal(body, &out)
+	if err := json.Unmarshal(body, &out); err != nil {
+		t.Fatalf("admin login response: %v", err)
+	}
 	a.csrf = out.CSRFToken
+	// 初始管理员带 must_change_password 标记：先走一次真实改密流程，再执行管理操作。
+	if out.Admin.MustChangePassword {
+		newPw := a.password + "-changed"
+		a.csrf = a.changePassword(t, a.password, newPw)
+		a.password = newPw
+	}
+}
+
+func (a *adminClient) changePassword(t *testing.T, oldPw, newPw string) string {
+	t.Helper()
+	st, body := a.env.post("/admin/v1/auth/password", mustJSON(map[string]any{
+		"old_password": oldPw, "new_password": newPw,
+	}), map[string]string{"X-CSRF-Token": a.csrf})
+	if st != 200 {
+		t.Fatalf("password change: %d %s", st, body)
+	}
+	var out struct {
+		CSRFToken string `json:"csrf_token"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil || out.CSRFToken == "" {
+		t.Fatalf("password change response: %v %s", err, body)
+	}
+	return out.CSRFToken
 }
 
 func (a *adminClient) post(t *testing.T, path string, body any) (int, []byte) {
@@ -271,7 +312,9 @@ func (d *deviceClient) activate(t *testing.T, card, fp string, components []stri
 	env := d.sealEnvelope(t, "activate", payload)
 	ts := time.Now().Unix()
 	nonce := mustNonce(t)
-	hdr := d.deviceAuthHeader("POST", "/v1/activate", env, ts, nonce, 0)
+	// 激活与心跳共用同一设备的单调序列号（服务端激活防重放要求）
+	d.seq++
+	hdr := d.deviceAuthHeader("POST", "/v1/activate", env, ts, nonce, d.seq)
 	st, body := d.env.post("/v1/activate", env, map[string]string{"X-Vft-Device-Auth": hdr})
 	// 自动记录激活返回的绑定信息
 	if st == 200 {
@@ -350,11 +393,6 @@ type fixture struct {
 func seedFixture(t *testing.T, e *testEnv) *fixture {
 	suffix := randSuffix(t) // Windows 计时器精度不足，用 crypto/rand 防代码碰撞
 	t.Helper()
-	// 直接经服务层创建初始管理员（绕过 HTTP 的首启限制）；幂等处理重复运行
-	if _, err := e.svc.BootstrapAdmin(context.Background(), "root", "root-password-123", ""); err != nil &&
-		!strings.Contains(err.Error(), "23505") {
-		t.Fatalf("bootstrap admin: %v", err)
-	}
 	e.admin.login(t)
 
 	st, body := e.admin.post(t, "/admin/v1/products", map[string]any{"code": fmt.Sprintf("AUX%d", suffix), "name": "辅助工具 Pro"})

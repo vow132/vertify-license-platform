@@ -50,7 +50,7 @@ CREATE TABLE card_batches (
     product_id  UUID NOT NULL REFERENCES products(id),
     plan_id     UUID NOT NULL REFERENCES plans(id),
     quantity    INT NOT NULL CHECK (quantity BETWEEN 1 AND 100000),
-    prefix      TEXT NOT NULL CHECK (length(prefix) BETWEEN 1 AND 8),
+    prefix      TEXT NOT NULL CHECK (length(prefix) BETWEEN 0 AND 8),
     note        TEXT,
     created_by  UUID NOT NULL,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()

@@ -37,12 +37,32 @@ func newAdminSession(t *testing.T, e *testEnv, username, password string) *admin
 	defer resp.Body.Close()
 	var out struct {
 		CSRFToken string `json:"csrf_token"`
+		Admin     struct {
+			MustChangePassword bool `json:"must_change_password"`
+		} `json:"admin"`
 	}
 	_ = json.NewDecoder(resp.Body).Decode(&out)
 	if resp.StatusCode != 200 {
 		t.Fatalf("agent login: %d", resp.StatusCode)
 	}
 	s.csrf = out.CSRFToken
+	// 创建的管理员同样带 must_change_password 标记：在当前会话内完成首次改密。
+	if out.Admin.MustChangePassword {
+		st2, body2 := s.post(t, "/admin/v1/auth/password", map[string]any{
+			"old_password": password,
+			"new_password": password + "-changed",
+		})
+		if st2 != 200 {
+			t.Fatalf("first password change: %d %s", st2, body2)
+		}
+		var pw struct {
+			CSRFToken string `json:"csrf_token"`
+		}
+		_ = json.Unmarshal(body2, &pw)
+		if pw.CSRFToken != "" {
+			s.csrf = pw.CSRFToken // 改密后签发新会话，CSRF 随之轮换
+		}
+	}
 	return s
 }
 

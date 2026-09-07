@@ -324,7 +324,7 @@ func (s *Services) CardAction(ctx context.Context, ac *AdminContext, cardID, act
 		if card.Status == "revoked" || card.Status == "voided" {
 			return domain.ErrCardNotUsable
 		}
-		targetStatus = action
+		targetStatus = "revoked"
 		if action == "void" {
 			targetStatus = "voided"
 		}
@@ -395,7 +395,7 @@ func (s *Services) LicenseAction(ctx context.Context, ac *AdminContext, licenseI
 		if lic.Status == "revoked" || lic.Status == "voided" {
 			return domain.ErrLicenseRevoked
 		}
-		target = action
+		target = "revoked"
 		if action == "void" {
 			target = "voided"
 		}

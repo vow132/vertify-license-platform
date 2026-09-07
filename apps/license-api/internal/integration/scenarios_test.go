@@ -3,6 +3,8 @@
 package integration
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/cookiejar"
@@ -26,11 +28,16 @@ func codeOf(body []byte) string {
 }
 
 // comp 按 fp 生成互不相同的指纹分量摘要（模拟不同硬件）。
+// 服务端要求每个分量为 64 位十六进制摘要（sha256），此处按同规则生成。
 func comp(fp string) []string {
+	h := func(s string) string {
+		sum := sha256.Sum256([]byte(s))
+		return hex.EncodeToString(sum[:])
+	}
 	return []string{
-		fp + "-guid",  // sha256(machineGUID)
-		fp + "-board", // sha256(baseboard serial)
-		fp + "-disk",  // sha256(system disk serial)
+		h(fp + "-guid"),  // sha256(machineGUID)
+		h(fp + "-board"), // sha256(baseboard serial)
+		h(fp + "-disk"),  // sha256(system disk serial)
 	}
 }
 
