@@ -9,8 +9,8 @@ jobs:
   api:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with: { go-version: "1.27", cache-dependency-path: apps/license-api/go.sum }
       - name: vet & unit tests
         working-directory: apps/license-api
@@ -21,23 +21,31 @@ jobs:
         uses: golang/govulncheck-action@v1
         with:
           work-dir: apps/license-api
+          cache: false
       - name: integration tests (postgres + redis services)
         working-directory: apps/license-api
         env:
           VFT_TEST_DATABASE_URL: postgres://vertify:vertify@127.0.0.1:54329/vertify_test?sslmode=disable
           VFT_TEST_REDIS_URL: redis://127.0.0.1:6399/1
         run: |
+          set -euxo pipefail
+          cleanup() { docker rm -f pg rd >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
           docker run -d --name pg -p 54329:5432 -e POSTGRES_USER=vertify -e POSTGRES_PASSWORD=vertify -e POSTGRES_DB=vertify_test postgres:16-alpine
           docker run -d --name rd -p 6399:6379 redis:7-alpine
-          sleep 5
+          for i in $(seq 1 60); do
+            docker exec pg pg_isready -U vertify >/dev/null 2>&1 && docker exec rd redis-cli ping >/dev/null 2>&1 && break
+            if [ "$i" = 60 ]; then echo "test services did not become ready"; exit 1; fi
+            sleep 1
+          done
           go test -tags integration ./internal/integration/ -v -count=1
 
   web:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: apps/admin-web } }
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 22, cache: npm, cache-dependency-path: apps/admin-web/package-lock.json }
       - run: npm ci
       - run: npm run build
@@ -45,7 +53,7 @@ jobs:
   sdk:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: configure
         run: cmake -S sdk/windows-cpp -B sdk/windows-cpp/build -A x64
       - name: build
@@ -57,7 +65,7 @@ jobs:
     needs: [api]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: build image
         run: docker build -f deploy/compose/Dockerfile.api -t vertify-api:${{ github.sha }} .
       - name: install trivy

@@ -93,8 +93,8 @@ func Load() (*Config, error) {
 		ClientAddr:           fromEnv("VFT_CLIENT_ADDR", ":8080"),
 		AdminAddr:            fromEnv("VFT_ADMIN_ADDR", ":8081"),
 		MetricsAddr:          fromEnv("VFT_METRICS_ADDR", ":9090"),
-		DatabaseURL:          fromEnv("VFT_DATABASE_URL", "postgres://vertify:vertify@127.0.0.1:54329/vertify?sslmode=disable"),
-		RedisURL:             fromEnv("VFT_REDIS_URL", "redis://127.0.0.1:6399/0"),
+		DatabaseURL:          os.Getenv("VFT_DATABASE_URL"),
+		RedisURL:             os.Getenv("VFT_REDIS_URL"),
 		GracefulShutdown:     15 * time.Second,
 		LogLevel:             fromEnv("VFT_LOG_LEVEL", "info"),
 		InitialAdminUser:     os.Getenv("VFT_INITIAL_ADMIN_USER"),
@@ -103,18 +103,15 @@ func Load() (*Config, error) {
 		TLSCertFile:          os.Getenv("VFT_TLS_CERT"),
 		TLSKeyFile:           os.Getenv("VFT_TLS_KEY"),
 	}
+	if c.DatabaseURL == "" || c.RedisURL == "" {
+		return nil, errors.New("config: VFT_DATABASE_URL and VFT_REDIS_URL are required (no built-in defaults; see compose/dev docs)")
+	}
 	if c.Env == "prod" {
 		if os.Getenv("VFT_SIGNER_PROVIDER") != "kms" {
 			return nil, errors.New("config: prod requires VFT_SIGNER_PROVIDER=kms; LocalSigner seed mode is disabled")
 		}
 		if os.Getenv("VFT_TRUSTED_PROXIES") == "" {
 			return nil, errors.New("config: prod requires VFT_TRUSTED_PROXIES")
-		}
-
-		for _, k := range []string{"VFT_DATABASE_URL", "VFT_REDIS_URL"} {
-			if os.Getenv(k) == "" {
-				return nil, fmt.Errorf("config: %s required in prod", k)
-			}
 		}
 		if c.TLSCertFile == "" || c.TLSKeyFile == "" {
 			if os.Getenv("VFT_TRUSTED_TLS_PROXY") != "true" {

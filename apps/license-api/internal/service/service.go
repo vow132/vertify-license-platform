@@ -15,7 +15,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/vertify/license-platform/internal/cache"
@@ -50,16 +49,12 @@ type Services struct {
 	cardEncKeys   map[string][]byte
 	cardEncActive string
 	fpSaltKey     []byte
-
-	mu          sync.RWMutex
-	pendingTOTP map[string]string
 }
 
 func New(cfg *config.Config, keys crypto.Signer, kex []*crypto.KexKeyPair, st *store.Store, c *cache.Cache) (*Services, error) {
 	s := &Services{
 		Cfg: cfg, Keys: keys, Kex: kex, Store: st, Cache: c,
-		Risk:        &Risk{Store: st, Cache: c},
-		pendingTOTP: make(map[string]string),
+		Risk: &Risk{Store: st, Cache: c},
 	}
 	s.cardHMACKey = cfg.CardHMACKey
 	s.cardEncKeys = cfg.CardEncKeys
