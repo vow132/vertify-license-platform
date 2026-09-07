@@ -61,7 +61,7 @@ jobs:
       - name: build image
         run: docker build -f deploy/compose/Dockerfile.api -t vertify-api:${{ github.sha }} .
       - name: scan image
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: vertify-api:${{ github.sha }}
           severity: HIGH,CRITICAL
@@ -75,4 +75,12 @@ jobs:
       - name: compose config
         shell: bash
         run: |
+          # 仅用于 CI 配置校验的开发占位值，不包含任何真实密钥
+          export VFT_INITIAL_ADMIN_USER=admin
+          export VFT_INITIAL_ADMIN_PASSWORD=ci-dev-placeholder-password-123
+          export VFT_SIGN_KEYS=sign-a:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+          export VFT_KEX_KEYS=kex-a:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA*
+          export VFT_CARD_HMAC_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+          export VFT_CARD_ENC_KEYS=card-enc-a:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA*
+          export VFT_CARD_ENC_ACTIVE_KID=card-enc-a
           docker compose -f deploy/compose/docker-compose.yml config --quiet
