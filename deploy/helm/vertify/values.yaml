@@ -1,0 +1,16 @@
+replicaCount: 3
+
+image:
+  repository: registry.example.com/vertify/api
+  tag: ""
+  pullPolicy: IfNotPresent
+
+existingSecret: vertify-secrets
+
+# 数据库和 Redis 连接串必须存放在 existingSecret 的 VFT_DATABASE_URL/VFT_REDIS_URL。
+database: {}
+redis: {}
+
+resources:
+  requests: { cpu: 250m, memory: 256Mi }
+  limits: { cpu: "1", memory: 512Mi }

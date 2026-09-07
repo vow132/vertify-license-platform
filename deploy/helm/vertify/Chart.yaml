@@ -1,0 +1,14 @@
+# Vertify Helm Chart（生产基线）
+# 多副本 API、迁移 Job、HPA/PDB、NetworkPolicy、密钥经 External Secrets 注入。
+#
+# 关键原则：
+#   - 数据库迁移由独立 Job 在部署流水线中先行执行，API Pod 不并发迁移
+#   - 签名/KEX/HMAC 密钥只经 Secret（接 KMS/Vault/External Secrets Operator）
+#   - 管理面与公开客户端面分开 Service/Ingress（可分域 + 分 WAF 策略）
+
+apiVersion: v2
+name: vertify
+description: Vertify license platform
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

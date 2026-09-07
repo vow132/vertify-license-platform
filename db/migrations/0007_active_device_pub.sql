@@ -1,0 +1,3 @@
+-- 0007_active_device_pub.sql
+-- 已由 0008_enable_active_device_pub.sql 在历史重复数据清理后启用。
+-- 保留此迁移编号作为历史占位，不在已执行迁移上追加结构变更。

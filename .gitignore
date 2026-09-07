@@ -1,0 +1,43 @@
+# Toolchains (local portable tooling, never commit)
+/.tools/
+
+# Secrets & local env
+.env
+.env.*
+*.env
+!.env.example
+*.pem
+*.key
+!/**/testdata/*.key
+deploy/secrets/
+
+# Build artifacts
+/bin/
+/dist/
+/target/
+**/build/
+CMakeCache.txt
+CMakeFiles/
+*.exe
+*.dll
+*.lib
+*.a
+*.obj
+*.o
+*.pdb
+!sdk/windows-cpp/tests/vectors/**
+apps/admin-web/node_modules/
+apps/admin-web/dist/
+*.tsbuildinfo
+coverage.out
+*.test
+*.log
+*.tmp
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# ZCode 会话工件
+/.zcode/

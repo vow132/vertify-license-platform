@@ -1,0 +1,20 @@
+# 多阶段构建：Go 授权 API（含迁移/worker，同一镜像不同入口）
+FROM golang:1.27-alpine AS build
+WORKDIR /src
+COPY apps/license-api/go.mod apps/license-api/go.sum ./
+RUN go mod download
+COPY apps/license-api/ ./
+COPY db/ /db/
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/server ./cmd/server \
+ && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/worker ./cmd/worker \
+ && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate
+
+# distroless 运行时：非 root、只读根文件系统、最小攻击面
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /out/server /server
+COPY --from=build /out/worker /worker
+COPY --from=build /out/migrate /migrate
+COPY --from=build /db/migrations /db/migrations
+USER nonroot
+EXPOSE 8080 8081 9090
+ENTRYPOINT ["/server"]
