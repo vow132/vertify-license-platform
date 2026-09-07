@@ -29,7 +29,7 @@ export default function Risk() {
 
   const load = useCallback(() => {
     get<{ items: RiskEvent[] }>('/admin/v1/risk').then((r) => setEvents(r.items)).catch((e) => setErr(e.message))
-    get<{ items: Ban[] }>('/admin/v1/bans').then((r) => setBans(r.items)).catch(() => {})
+    get<{ items: Ban[] }>('/admin/v1/bans').then((r) => setBans(r.items)).catch((e) => setErr(e.message))
   }, [])
   useEffect(load, [load])
 
