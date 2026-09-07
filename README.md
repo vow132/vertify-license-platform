@@ -1,4 +1,4 @@
-# Vertify — 商业级卡密验证与软件许可平台
+# Vertify — 卡密验证与软件许可平台
 
 面向 Windows C++ 游戏辅助客户端的企业级卡密（License Key）验证系统：
 
