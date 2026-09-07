@@ -60,12 +60,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: build image
         run: docker build -f deploy/compose/Dockerfile.api -t vertify-api:${{ github.sha }} .
+      - name: install trivy
+        uses: aquasecurity/setup-trivy@v0.3.1
       - name: scan image
-        uses: aquasecurity/trivy-action@v0.28.0
-        with:
-          image-ref: vertify-api:${{ github.sha }}
-          severity: HIGH,CRITICAL
-          exit-code: "1"
+        run: trivy image --severity HIGH,CRITICAL --exit-code 1 --no-progress vertify-api:${{ github.sha }}
       - name: validate helm
         shell: bash
         run: |
