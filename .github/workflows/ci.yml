@@ -61,7 +61,7 @@ jobs:
       - name: build image
         run: docker build -f deploy/compose/Dockerfile.api -t vertify-api:${{ github.sha }} .
       - name: scan image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: vertify-api:${{ github.sha }}
           severity: HIGH,CRITICAL
