@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (MSVC)
     # 商业级发布加固：CFG/ASLR/DEP/栈保护/调试信息剥离
+    # SDK 在受控场景使用 getenv/strncpy，关闭 MSVC 的 CRT 弃用告警即错误（C4996）
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
     add_compile_options(/W4 /permissive- /sdl /guard:cf)
     add_link_options(/GUARD:CF /DYNAMICBASE /NXCOMPAT /OPT:REF /OPT:ICF)
 else()
