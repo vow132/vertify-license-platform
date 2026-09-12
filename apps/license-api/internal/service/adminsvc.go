@@ -19,14 +19,13 @@ import (
 // ===== 制卡与卡密管理 =====
 
 type CreateBatchRequest struct {
-	ProductID    string `json:"product_id"`
-	PlanID       string `json:"plan_id"`
-	DurationDays int    `json:"duration_days"` // 自定义时长：PlanID 为空时按此天数自动建套餐（仅总经销/管理员）
-	AgentID      string `json:"agent_id"`
-	Kind         string `json:"kind"` // license | renewal
-	Quantity     int    `json:"quantity"`
-	Prefix       string `json:"prefix"`
-	Note         string `json:"note"`
+	ProductID string `json:"product_id"`
+	PlanID    string `json:"plan_id"`
+	AgentID   string `json:"agent_id"`
+	Kind      string `json:"kind"` // license | renewal
+	Quantity  int    `json:"quantity"`
+	Prefix    string `json:"prefix"`
+	Note      string `json:"note"`
 }
 
 type ImportCardRequest struct {
@@ -135,23 +134,12 @@ func (s *Services) CreateCardBatch(ctx context.Context, ac *AdminContext, req *C
 	var plan *store.Plan
 	var err error
 	if req.PlanID == "" {
-		// 自定义时长：自动查找/创建 duration 套餐（仅总经销/管理员；代理必须选已定价套餐，防止 0 元绕过计费）
-		if ac.Admin.Role == string(domain.AdminAgent) {
-			return nil, errors.New("agents must choose a priced plan")
-		}
-		if req.DurationDays <= 0 || req.DurationDays > 36500 {
-			return nil, errors.New("duration_days must be 1-36500")
-		}
-		if plan, err = s.findOrCreateCustomPlan(ctx, req.ProductID, req.DurationDays); err != nil {
-			return nil, err
-		}
-	} else {
-		if plan, err = s.Store.Q().GetPlan(ctx, req.PlanID); err != nil {
-			return nil, err
-		}
+		// 套餐时长只在"套餐管理"中定义；制卡必须选择既有套餐
+		return nil, errors.New("必须选择套餐")
 	}
-	// 自定义时长路径：plan_id 原为空，落库前必须指向自动创建的套餐
-	req.PlanID = plan.ID
+	if plan, err = s.Store.Q().GetPlan(ctx, req.PlanID); err != nil {
+		return nil, err
+	}
 	prod, err := s.Store.Q().GetProduct(ctx, req.ProductID)
 	if err != nil {
 		return nil, err
@@ -597,19 +585,36 @@ func (s *Services) UpdatePlan(ctx context.Context, ac *AdminContext, id string, 
 	return updated, nil
 }
 
+// DeletePlan 删除套餐。规则：必须已退役；存在激活/历史记录（许可证、非未使用卡）时拒绝，
+// 只剩未使用卡时自动作废并清理后删除（连同其空批次记录）。
 func (s *Services) DeletePlan(ctx context.Context, ac *AdminContext, id, ip, requestID string) error {
 	p, err := s.Store.Q().GetPlan(ctx, id)
 	if err != nil {
 		return err
 	}
-	n, err := s.Store.Q().CountPlanReferences(ctx, id)
-	if err != nil {
-		return err
+	if p.Status != "retired" {
+		return domain.ErrPlanNotRetired
 	}
-	if n > 0 {
+	if n, err := s.Store.Q().CountPlanLicenses(ctx, id); err != nil {
+		return err
+	} else if n > 0 {
 		return domain.ErrPlanInUse
 	}
-	if err := s.Store.Q().DeletePlan(ctx, id); err != nil {
+	if n, err := s.Store.Q().CountPlanLiveCards(ctx, id); err != nil {
+		return err
+	} else if n > 0 {
+		return domain.ErrPlanInUse
+	}
+	err = s.Store.WithTx(ctx, func(q *store.Queries) error {
+		if err := q.VoidAndDeleteUnusedCards(ctx, id); err != nil {
+			return err
+		}
+		if err := q.DeleteBatchesByPlan(ctx, id); err != nil {
+			return err
+		}
+		return q.DeletePlan(ctx, id)
+	})
+	if err != nil {
 		return err
 	}
 	s.Audit(ctx, ac, "plan.delete", "plan", id, p, nil, nil, ip, requestID)
@@ -898,30 +903,4 @@ func (s *Services) AdminExtendLicense(ctx context.Context, ac *AdminContext, lic
 	s.Audit(ctx, ac, "license.extend", "license", licenseID, nil,
 		map[string]any{"days": days, "reason": reason, "new_expiry": newExp}, nil, ip, requestID)
 	return newExp, nil
-}
-
-// findOrCreateCustomPlan 按产品+天数查找或创建自定义时长套餐（code 随机保证全局唯一）。
-func (s *Services) findOrCreateCustomPlan(ctx context.Context, productID string, days int) (*store.Plan, error) {
-	p, perr := s.Store.Q().GetPlanByProductDuration(ctx, productID, days)
-	if perr == nil {
-		return p, nil
-	}
-	if !errors.Is(perr, store.ErrNoRows) {
-		return nil, perr
-	}
-	code := fmt.Sprintf("custom-%s-%dd", strings.ToLower(autoSuffix()), days)
-	return s.Store.Q().CreatePlan(ctx, &store.Plan{
-		ProductID:       productID,
-		Code:            code,
-		Name:            fmt.Sprintf("自定义 %d 天卡", days),
-		Kind:            "duration",
-		DurationDays:    days,
-		DeviceLimit:     1,
-		ConcurrentLimit: 1,
-		Features:        []string{},
-		HeartbeatSec:    60,
-		LeaseTTL:        300,
-		RebindCooldownH: 24,
-		MonthlyRebind:   2,
-	})
 }

@@ -65,7 +65,7 @@ export default function Plans() {
     setShow(true)
   }
   const setStatus = async (id: string, status: string) => { try { await post(`/admin/v1/plans/${id}/status`, { status }); load() } catch (e) { setErr((e as Error).message) } }
-  const remove = async (p: Plan) => { if (!confirm(`确定删除套餐“${p.name}”吗？已使用套餐只能退役。`)) return; try { await del(`/admin/v1/plans/${p.id}`); load() } catch (e) { setErr((e as Error).message) } }
+  const remove = async (p: Plan) => { if (!confirm(`确定删除套餐“${p.name}”吗？未使用的卡将被作废删除（制卡扣款不退还）；存在激活或历史记录的套餐无法删除。`)) return; try { await del(`/admin/v1/plans/${p.id}`); load() } catch (e) { setErr((e as Error).message) } }
   const prodCode = (id: string) => products.find((p) => p.id === id)?.code || id
   const duration = (p: Plan) => p.kind === 'duration' ? `${p.duration_days}天` : p.kind === 'fixed' ? `固定期 ${p.fixed_expiry_days}天` : p.kind === 'uses' ? `${p.uses_total}次` : '永久'
 

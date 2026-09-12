@@ -425,6 +425,16 @@ func handleListPlans(svc *service.Services) http.HandlerFunc {
 			MapError(w, r, err)
 			return
 		}
+		// 代理商只看到在售套餐；退役/停售套餐对代理商不可见
+		if adminCtx(r).Admin.Role == string(domain.AdminAgent) {
+			filtered := ps[:0]
+			for _, p := range ps {
+				if p.Status == "active" {
+					filtered = append(filtered, p)
+				}
+			}
+			ps = filtered
+		}
 		writeJSON(w, 200, map[string]any{"items": ps})
 	}
 }

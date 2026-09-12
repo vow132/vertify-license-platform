@@ -147,6 +147,32 @@ func (q *Queries) CountPlanReferences(ctx context.Context, planID string) (int64
 	return n, err
 }
 
+// CountPlanLicenses 该套餐关联的许可证数（激活历史，删除套餐时不可清理）。
+func (q *Queries) CountPlanLicenses(ctx context.Context, planID string) (int64, error) {
+	var n int64
+	err := q.queryRow(ctx, `SELECT count(*) FROM licenses WHERE plan_id=$1`, planID).Scan(&n)
+	return n, err
+}
+
+// CountPlanLiveCards 该套餐下非"未使用"的卡数（激活/冻结/吊销等历史，删除时不可清理）。
+func (q *Queries) CountPlanLiveCards(ctx context.Context, planID string) (int64, error) {
+	var n int64
+	err := q.queryRow(ctx, `SELECT count(*) FROM cards WHERE plan_id=$1 AND status <> 'unused'`, planID).Scan(&n)
+	return n, err
+}
+
+// VoidAndDeleteUnusedCards 作废并删除套餐下全部未使用卡（从未流通，可安全清理）。
+func (q *Queries) VoidAndDeleteUnusedCards(ctx context.Context, planID string) error {
+	_, err := q.exec(ctx, `DELETE FROM cards WHERE plan_id=$1 AND status='unused'`, planID)
+	return err
+}
+
+// DeleteBatchesByPlan 删除套餐下的制卡批次记录（调用前须先清理其卡密）。
+func (q *Queries) DeleteBatchesByPlan(ctx context.Context, planID string) error {
+	_, err := q.exec(ctx, `DELETE FROM card_batches WHERE plan_id=$1`, planID)
+	return err
+}
+
 func (q *Queries) DeletePlan(ctx context.Context, planID string) error {
 	tag, err := q.exec(ctx, `DELETE FROM plans WHERE id=$1`, planID)
 	if err != nil {

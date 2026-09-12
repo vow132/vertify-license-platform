@@ -223,6 +223,19 @@ func (a *adminClient) get(t *testing.T, path string) (int, []byte) {
 	return a.env.get(path, nil)
 }
 
+func (a *adminClient) del(t *testing.T, path string) (int, []byte) {
+	t.Helper()
+	req, _ := http.NewRequest("DELETE", a.env.ts.URL+path, nil)
+	req.Header.Set("X-CSRF-Token", a.csrf)
+	resp, err := a.env.client.Do(req)
+	if err != nil {
+		return -1, nil
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	return resp.StatusCode, b
+}
+
 // ===== 设备客户端（协议参考实现，C++ SDK 与其保持一致） =====
 
 type deviceClient struct {

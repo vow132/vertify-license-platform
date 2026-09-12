@@ -73,7 +73,9 @@ func MapError(w http.ResponseWriter, r *http.Request, err error) {
 	case errors.Is(err, store.ErrNoRows):
 		ErrorWriter(w, r, err, 404, "NOT_FOUND", "对象不存在")
 	case errors.Is(err, domain.ErrPlanInUse):
-		ErrorWriter(w, r, err, 409, "PLAN_IN_USE", "套餐已被卡密或许可证使用，请先退役而不是删除")
+		ErrorWriter(w, r, err, 409, "PLAN_IN_USE", "该套餐存在已激活或历史卡密记录，无法删除（数据完整性保护）")
+	case errors.Is(err, domain.ErrPlanNotRetired):
+		ErrorWriter(w, r, err, 409, "PLAN_NOT_RETIRED", "请先将套餐退役，再删除")
 	case errors.Is(err, domain.ErrCardNotFound):
 		ErrorWriter(w, r, err, 404, "CARD_NOT_FOUND", "卡密不存在")
 	case errors.Is(err, domain.ErrCardInvalidFormat):

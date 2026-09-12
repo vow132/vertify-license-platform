@@ -176,6 +176,7 @@ var (
 	ErrBanned              = errors.New("blocked by policy")
 	ErrPlanRetired         = errors.New("plan retired")
 	ErrPlanInUse           = errors.New("plan is already used")
+	ErrPlanNotRetired      = errors.New("plan must be retired before delete")
 	ErrProductRetired      = errors.New("product retired")
 	ErrVersionTooOld       = errors.New("client version too old")
 	ErrInsufficientBalance = errors.New("agent balance insufficient")

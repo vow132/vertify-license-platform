@@ -23,6 +23,7 @@ interface Plan {
   fixed_expiry_days: number
   uses_total: number
   price_cents: number
+  status: string
 }
 interface Product {
   id: string
@@ -41,9 +42,10 @@ export default function Batches() {
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(false)
   const [output, setOutput] = useState<{ batchId: string; cards: string[] } | null>(null)
-  const [form, setForm] = useState({ product_id: '', plan_id: '', kind: 'license', quantity: 100, prefix: '', note: '', custom_days: '' })
+  const [form, setForm] = useState({ product_id: '', plan_id: '', kind: 'license', quantity: 100, prefix: '', note: '' })
   const canManage = usePermissions().includes('cards:manage')
-  const filteredPlans = plans.filter((p) => !form.product_id || p.product_id === form.product_id)
+  // 只能用在售（active）套餐制卡；退役套餐从下拉中隐藏
+  const filteredPlans = plans.filter((p) => p.status === 'active' && (!form.product_id || p.product_id === form.product_id))
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -71,14 +73,8 @@ export default function Batches() {
         prefix: form.prefix,
         note: form.note,
       }
-      if (form.plan_id === '__custom__') {
-        const days = Number(form.custom_days)
-        if (!Number.isInteger(days) || days < 1 || days > 36500) throw new Error('自定义时长必须是 1-36500 之间的整数天数')
-        payload.duration_days = days
-      } else {
-        if (!form.plan_id) throw new Error('请选择套餐')
-        payload.plan_id = form.plan_id
-      }
+      if (!form.plan_id) throw new Error('请选择套餐')
+      payload.plan_id = form.plan_id
       if (!Number.isInteger(payload.quantity as number) || (payload.quantity as number) < 1 || (payload.quantity as number) > 100000) throw new Error('生成数量必须是 1-100000 之间的整数')
       const r = await post<{ batch: Batch; cards: string[] }>('/admin/v1/batches', payload)
       setShow(false)
@@ -156,14 +152,9 @@ export default function Batches() {
               <select value={form.plan_id} onChange={(e) => setForm({ ...form, plan_id: e.target.value })}>
                 <option value="">选择套餐…</option>
                 {filteredPlans.map((p) => <option key={p.id} value={p.id}>{planLabel(p)}</option>)}
-                <option value="__custom__">自定义时长（直接填天数）</option>
+                {filteredPlans.length === 0 && form.product_id && <option value="">（该产品没有在售套餐，请先到套餐管理新增）</option>}
               </select>
             </Field>
-            {form.plan_id === '__custom__' && (
-              <Field label="自定义时长（天）">
-                <input type="number" min="1" value={form.custom_days} onChange={(e) => setForm({ ...form, custom_days: e.target.value })} placeholder="如 15" />
-              </Field>
-            )}
             <Field label="自定义前缀（可选，1-8位大写字母或2-9数字）">
               <input value={form.prefix} maxLength={8} onChange={(e) => setForm({ ...form, prefix: e.target.value.toUpperCase().replace(/[^A-Z2-9]/g, '') })} placeholder="例如 VIP、TEST" />
             </Field>
