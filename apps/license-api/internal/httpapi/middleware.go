@@ -76,6 +76,8 @@ func MapError(w http.ResponseWriter, r *http.Request, err error) {
 		ErrorWriter(w, r, err, 409, "PLAN_IN_USE", "该套餐存在已激活或历史卡密记录，无法删除（数据完整性保护）")
 	case errors.Is(err, domain.ErrPlanNotRetired):
 		ErrorWriter(w, r, err, 409, "PLAN_NOT_RETIRED", "请先将套餐退役，再删除")
+	case errors.Is(err, domain.ErrProductNotGranted):
+		ErrorWriter(w, r, err, 403, "PRODUCT_NOT_GRANTED", "该产品未对您的代理商开通，请联系管理员")
 	case errors.Is(err, domain.ErrCardNotFound):
 		ErrorWriter(w, r, err, 404, "CARD_NOT_FOUND", "卡密不存在")
 	case errors.Is(err, domain.ErrCardInvalidFormat):

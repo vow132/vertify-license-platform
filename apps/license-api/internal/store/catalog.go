@@ -173,6 +173,74 @@ func (q *Queries) DeleteBatchesByPlan(ctx context.Context, planID string) error 
 	return err
 }
 
+// ===== 代理商产品授权 =====
+
+// GrantAgentProduct 开通代理商对某产品的制卡权限。
+func (q *Queries) GrantAgentProduct(ctx context.Context, agentID, productID string) error {
+	_, err := q.exec(ctx,
+		`INSERT INTO agent_product_grants(agent_id, product_id) VALUES($1,$2) ON CONFLICT DO NOTHING`,
+		agentID, productID)
+	return err
+}
+
+// RevokeAgentProduct 收回代理商对某产品的权限。
+func (q *Queries) RevokeAgentProduct(ctx context.Context, agentID, productID string) error {
+	_, err := q.exec(ctx, `DELETE FROM agent_product_grants WHERE agent_id=$1 AND product_id=$2`, agentID, productID)
+	return err
+}
+
+// AgentHasProduct 代理商是否已被开通某产品。
+func (q *Queries) AgentHasProduct(ctx context.Context, agentID, productID string) (bool, error) {
+	var ok bool
+	err := q.queryRow(ctx, `SELECT EXISTS(SELECT 1 FROM agent_product_grants WHERE agent_id=$1 AND product_id=$2)`,
+		agentID, productID).Scan(&ok)
+	return ok, err
+}
+
+// ListAgentProducts 代理商已开通的产品 ID 集合。
+func (q *Queries) ListAgentProducts(ctx context.Context, agentID string) ([]string, error) {
+	rows, err := q.query(ctx, `SELECT product_id FROM agent_product_grants WHERE agent_id=$1 ORDER BY product_id`, agentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}
+
+// UpdateAdminUsername 修改管理员登录用户名（用户名唯一约束冲突时报错）。
+func (q *Queries) UpdateAdminUsername(ctx context.Context, adminID, username string) error {
+	tag, err := q.exec(ctx, `UPDATE admins SET username=$2 WHERE id=$1`, adminID, username)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNoRows
+	}
+	return nil
+}
+
+// ResetAdminPassword 重置密码并要求下次登录修改，同时清零锁定状态。
+func (q *Queries) ResetAdminPassword(ctx context.Context, adminID, passwordHash string) error {
+	tag, err := q.exec(ctx,
+		`UPDATE admins SET password_hash=$2, must_change_password=true, failed_attempts=0, locked_until=NULL WHERE id=$1`,
+		adminID, passwordHash)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNoRows
+	}
+	return nil
+}
+
 func (q *Queries) DeletePlan(ctx context.Context, planID string) error {
 	tag, err := q.exec(ctx, `DELETE FROM plans WHERE id=$1`, planID)
 	if err != nil {

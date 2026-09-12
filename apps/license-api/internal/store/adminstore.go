@@ -116,6 +116,11 @@ func (q *Queries) RevokeAllSessions(ctx context.Context, adminID string) error {
 	return err
 }
 
+// GetAgentAdmin 取代理商的登录账号（role=agent 且绑定该代理）。
+func (q *Queries) GetAgentAdmin(ctx context.Context, agentID string) (*Admin, error) {
+	return collectOne[Admin](q.query(ctx, adminSelect+` WHERE role='agent' AND agent_id=$1 AND status='active' ORDER BY created_at LIMIT 1`, agentID))
+}
+
 // ReapSessions 清理过期会话（worker 调用），返回清理数量。
 func (q *Queries) ReapSessions(ctx context.Context) (int64, error) {
 	tag, err := q.exec(ctx, `DELETE FROM admin_sessions WHERE expires_at < now() - interval '7 days'`)

@@ -373,9 +373,12 @@ func TestAgentAccountCreationAndScope(t *testing.T) {
 		t.Fatalf("account credentials not returned: %s", body)
 	}
 
-	// 给代理充值，保证制卡扣款可用
+	// 给代理充值并开通产品，保证制卡可用
 	if st, body = e.admin.post(t, "/admin/v1/agents/"+resp.ID+"/balance", map[string]any{"amount_yuan": 100, "note": "test"}); st != 200 {
 		t.Fatalf("agent topup: %d %s", st, body)
+	}
+	if st, body = e.admin.post(t, "/admin/v1/agents/"+resp.ID+"/products", map[string]any{"product_id": fx.ProductID, "granted": true}); st != 200 {
+		t.Fatalf("grant product: %d %s", st, body)
 	}
 
 	ag := newAdminSession(t, e, resp.Account.Username, resp.Account.Password)

@@ -60,6 +60,20 @@ func TestAgentBalanceFlow(t *testing.T) {
 	}
 	ag := newAdminSession(t, e, agentUser, "agent-password-123")
 
+	// 2.5 开通代理商对产品的制卡权限（未开通时制卡直接 403）
+	st, body = ag.post(t, "/admin/v1/batches", map[string]any{
+		"product_id": fx.ProductID, "plan_id": pricedPlan.ID, "kind": "license", "quantity": 1,
+	})
+	if st != 403 || codeOf(body) != "PRODUCT_NOT_GRANTED" {
+		t.Fatalf("ungranted batch must be PRODUCT_NOT_GRANTED: %d %s", st, body)
+	}
+	st, body = e.admin.post(t, "/admin/v1/agents/"+agent.ID+"/products", map[string]any{
+		"product_id": fx.ProductID, "granted": true,
+	})
+	if st != 200 {
+		t.Fatalf("grant product: %d %s", st, body)
+	}
+
 	// 3. 零余额制卡 → BALANCE_INSUFFICIENT
 	st, body = e.admin.post(t, "/admin/v1/batches", map[string]any{
 		"product_id": fx.ProductID, "plan_id": pricedPlan.ID, "kind": "license", "quantity": 1,

@@ -57,6 +57,15 @@ func (s *Services) ImportCards(ctx context.Context, ac *AdminContext, req *Impor
 	if plan.Status != "active" {
 		return 0, domain.ErrPlanRetired
 	}
+	// 代理商只能导入已开通产品的卡密
+	if ac.Admin.Role == string(domain.AdminAgent) {
+		if ac.Admin.AgentID == nil {
+			return 0, domain.ErrProductNotGranted
+		}
+		if err := s.requireAgentProductGrant(ctx, ac, *ac.Admin.AgentID, prod.ID); err != nil {
+			return 0, err
+		}
+	}
 	kind := req.Kind
 	if kind == "" {
 		kind = "license"
@@ -152,6 +161,15 @@ func (s *Services) CreateCardBatch(ctx context.Context, ac *AdminContext, req *C
 	}
 	if plan.Status != "active" {
 		return nil, domain.ErrPlanRetired
+	}
+	// 代理商只能为已开通的产品制卡（超管/管理员不受限）
+	if ac.Admin.Role == string(domain.AdminAgent) {
+		if ac.Admin.AgentID == nil {
+			return nil, domain.ErrProductNotGranted
+		}
+		if err := s.requireAgentProductGrant(ctx, ac, *ac.Admin.AgentID, prod.ID); err != nil {
+			return nil, err
+		}
 	}
 
 	prefix, _ := crypto.ValidateCardPrefix(req.Prefix)
@@ -644,6 +662,109 @@ func (s *Services) PlanStatus(ctx context.Context, ac *AdminContext, id, status,
 type AgentAccount struct {
 	Username string `json:"username"`
 	Password string `json:"password,omitempty"`
+}
+
+// AgentAccountUpdate 代理商账号变更结果。NewPassword 仅在重置响应中出现一次。
+type AgentAccountUpdate struct {
+	Username    string `json:"username"`
+	NewPassword string `json:"new_password,omitempty"`
+}
+
+// ListAgentProductGrants 返回代理商已开通的产品 ID 集合（仅超管）。
+func (s *Services) ListAgentProductGrants(ctx context.Context, ac *AdminContext, agentID string) ([]string, error) {
+	if ac.Admin.Role != string(domain.AdminSuperAdmin) {
+		return nil, errors.New("only superadmin can view agent grants")
+	}
+	return s.Store.Q().ListAgentProducts(ctx, agentID)
+}
+
+// SetAgentProductGrant 开通/收回代理商的产品权限（仅超管，审计留痕）。
+func (s *Services) SetAgentProductGrant(ctx context.Context, ac *AdminContext, agentID, productID string, granted bool, ip, requestID string) error {
+	if ac.Admin.Role != string(domain.AdminSuperAdmin) {
+		return errors.New("only superadmin can grant products")
+	}
+	if _, err := s.Store.Q().GetAgent(ctx, agentID); err != nil {
+		return err
+	}
+	if _, err := s.Store.Q().GetProduct(ctx, productID); err != nil {
+		return err
+	}
+	if granted {
+		if err := s.Store.Q().GrantAgentProduct(ctx, agentID, productID); err != nil {
+			return err
+		}
+	} else {
+		if err := s.Store.Q().RevokeAgentProduct(ctx, agentID, productID); err != nil {
+			return err
+		}
+	}
+	s.Audit(ctx, ac, "agent.product_grant", "agent", agentID, nil,
+		map[string]any{"product_id": productID, "granted": granted}, nil, ip, requestID)
+	return nil
+}
+
+// GetAgentAccount 获取代理商当前登录账号（供超管界面回显）。
+func (s *Services) GetAgentAccount(ctx context.Context, ac *AdminContext, agentID string) (*store.Admin, error) {
+	if ac.Admin.Role != string(domain.AdminSuperAdmin) {
+		return nil, errors.New("only superadmin can view agent accounts")
+	}
+	return s.Store.Q().GetAgentAdmin(ctx, agentID)
+}
+
+// UpdateAgentAccount 超管修改代理商登录用户名 / 重置密码（仅限 role=agent 的账号）。
+// 重置密码后该账号全部会话立即失效，且下次登录必须修改密码。
+func (s *Services) UpdateAgentAccount(ctx context.Context, ac *AdminContext, agentID, adminID, newUsername, newPassword string, ip, requestID string) (*AgentAccountUpdate, error) {
+	if ac.Admin.Role != string(domain.AdminSuperAdmin) {
+		return nil, errors.New("only superadmin can update agent accounts")
+	}
+	ad, err := s.Store.Q().GetAdmin(ctx, adminID)
+	if err != nil {
+		return nil, err
+	}
+	if ad.Role != string(domain.AdminAgent) || ad.AgentID == nil || *ad.AgentID != agentID {
+		return nil, domain.ErrCardNotFound
+	}
+	out := &AgentAccountUpdate{Username: ad.Username}
+	if newUsername != "" && newUsername != ad.Username {
+		if err := s.Store.Q().UpdateAdminUsername(ctx, adminID, newUsername); err != nil {
+			return nil, err
+		}
+		out.Username = newUsername
+	}
+	if newPassword != "" {
+		if len(newPassword) < 12 {
+			return nil, errors.New("password must be >= 12 chars")
+		}
+		hash, err := hashPassword(newPassword)
+		if err != nil {
+			return nil, err
+		}
+		if err := s.Store.Q().ResetAdminPassword(ctx, adminID, hash); err != nil {
+			return nil, err
+		}
+		if err := s.Store.Q().RevokeAllSessions(ctx, adminID); err != nil {
+			return nil, err
+		}
+		out.NewPassword = newPassword
+	}
+	s.Audit(ctx, ac, "agent.account_update", "admin", adminID, nil,
+		map[string]any{"username": out.Username, "password_reset": newPassword != ""}, nil, ip, requestID)
+	return out, nil
+}
+
+// requireAgentProductGrant 代理商制卡前校验：该产品必须已对该代理商开通。
+func (s *Services) requireAgentProductGrant(ctx context.Context, ac *AdminContext, agentID, productID string) error {
+	if ac.Admin.Role != string(domain.AdminAgent) {
+		return nil
+	}
+	ok, err := s.Store.Q().AgentHasProduct(ctx, agentID, productID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return domain.ErrProductNotGranted
+	}
+	return nil
 }
 
 func (s *Services) CreateAgent(ctx context.Context, ac *AdminContext, name string, parentID *string, accountUsername, accountPassword string, ip, requestID string) (*store.Agent, *AgentAccount, error) {
