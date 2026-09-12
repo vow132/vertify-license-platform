@@ -4,7 +4,7 @@
 
 #pragma comment(lib, "winhttp.lib")
 
-namespace vertify {
+namespace lumistar {
 
 // 解析 https://host[:port]/
 static bool parse_url(const std::string &url, std::string &host, INTERNET_PORT &port) {
@@ -27,10 +27,10 @@ static bool parse_url(const std::string &url, std::string &host, INTERNET_PORT &
 HttpClient::HttpClient(const std::string &serverUrl, bool skipTlsVerify) {
 	skipTlsVerify_ = skipTlsVerify;
 	if (!parse_url(serverUrl, host_, port_)) return;
-	session_ = WinHttpOpen(L"VertifySDK/1.0", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+	session_ = WinHttpOpen(L"LumistarSDK/1.0", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
 	                       WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
 	if (session_) {
-		connect_ = WinHttpConnect(session_, vertify::a2w(host_).c_str(), port_, 0);
+		connect_ = WinHttpConnect(session_, lumistar::a2w(host_).c_str(), port_, 0);
 	}
 }
 
@@ -51,8 +51,8 @@ HttpResult HttpClient::request(const HttpRequest &req) {
 	bool secure = (req.url.rfind("https://", 0) == 0);
 	if (slash != std::string::npos) path = req.url.substr(slash);
 
-	HINTERNET hReq = WinHttpOpenRequest(connect_, vertify::a2w(req.method).c_str(),
-	                                    vertify::a2w(path).c_str(),
+	HINTERNET hReq = WinHttpOpenRequest(connect_, lumistar::a2w(req.method).c_str(),
+	                                    lumistar::a2w(path).c_str(),
 	                                    nullptr, WINHTTP_NO_REFERER,
 	                                    WINHTTP_DEFAULT_ACCEPT_TYPES,
 	                                    secure ? WINHTTP_FLAG_SECURE : 0);
@@ -71,7 +71,7 @@ HttpResult HttpClient::request(const HttpRequest &req) {
 
 	// 自定义头必须在 SendRequest 之前追加（请求头随发送一起出去）
 	for (auto &kv : req.headers) {
-		std::wstring h = vertify::a2w(kv.first) + L": " + vertify::a2w(kv.second) + L"\r\n";
+		std::wstring h = lumistar::a2w(kv.first) + L": " + lumistar::a2w(kv.second) + L"\r\n";
 		WinHttpAddRequestHeaders(hReq, h.c_str(), (DWORD)-1, WINHTTP_ADDREQ_FLAG_ADD);
 	}
 
@@ -104,4 +104,4 @@ HttpResult HttpClient::request(const HttpRequest &req) {
 	return res;
 }
 
-} // namespace vertify
+} // namespace lumistar

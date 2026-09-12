@@ -1,9 +1,9 @@
-// Vertify Windows C++ SDK —— 公共接口（C ABI + C++ RAII 封装）。
+// Lumistar Windows C++ SDK —— 公共接口（C ABI + C++ RAII 封装）。
 //
 // 接入方式（最小三步）：
-//   1. vertify_init({server_url, product_code, storage_dir})
-//   2. vertify_activate(card)                       // 信封加密 + 设备签名
-//   3. vertify_has_feature("aimbot")                // 业务功能门禁
+//   1. lumistar_init({server_url, product_code, storage_dir})
+//   2. lumistar_activate(card)                       // 信封加密 + 设备签名
+//   3. lumistar_has_feature("aimbot")                // 业务功能门禁
 //
 // 安全模型：
 //   - 激活载荷经 X25519 + HKDF + AES-256-GCM 信封加密（TLS 之外的端到端层）
@@ -62,7 +62,7 @@ typedef enum vft_state {
 typedef struct vft_config {
 	const char *server_url;     // 例如 "https://api.example.com"（仅 HTTPS）
 	const char *product_code;   // 产品代码
-	const char *storage_dir;    // 状态目录（默认 %PROGRAMDATA%\Vertify）
+	const char *storage_dir;    // 状态目录（默认 %PROGRAMDATA%\Lumistar）
 	const char *client_version; // 客户端版本（最低版本策略用）
 	const unsigned char *pin_pubkeys;   // 可选：Ed25519 公钥池（32B * n）
 	size_t pin_pubkeys_len;             // n（0 = 使用 bootstrap 分发并持久固定）
@@ -80,37 +80,37 @@ typedef struct vft_activation_result {
 typedef void (*vft_state_cb)(vft_state_t state, void *user);
 
 // ===== 生命周期 =====
-vft_err_t vertify_init(const vft_config *cfg, vft_handle_t *out);
-void      vertify_shutdown(vft_handle_t h);
+vft_err_t lumistar_init(const vft_config *cfg, vft_handle_t *out);
+void      lumistar_shutdown(vft_handle_t h);
 
 // ===== 激活 / 兑换 / 解绑（阻塞式） =====
-vft_err_t vertify_activate(vft_handle_t h, const char *card,
+vft_err_t lumistar_activate(vft_handle_t h, const char *card,
                            vft_activation_result *out /*可空*/);
-vft_err_t vertify_redeem(vft_handle_t h, const char *renewal_card);
-vft_err_t vertify_deactivate(vft_handle_t h); // 自助解绑当前设备
+vft_err_t lumistar_redeem(vft_handle_t h, const char *renewal_card);
+vft_err_t lumistar_deactivate(vft_handle_t h); // 自助解绑当前设备
 
 // ===== 心跳 =====
-vft_err_t vertify_start_heartbeat(vft_handle_t h, vft_state_cb cb, void *user);
-vft_err_t vertify_stop_heartbeat(vft_handle_t h);
+vft_err_t lumistar_start_heartbeat(vft_handle_t h, vft_state_cb cb, void *user);
+vft_err_t lumistar_stop_heartbeat(vft_handle_t h);
 
 // ===== 授权查询（业务高频调用） =====
-vft_state_t vertify_get_state(vft_handle_t h);
+vft_state_t lumistar_get_state(vft_handle_t h);
 // 功能门禁：每次调用实时验证租约签名/有效期/绑定，不缓存布尔值
-int         vertify_has_feature(vft_handle_t h, const char *feature);
+int         lumistar_has_feature(vft_handle_t h, const char *feature);
 // 当前租约剩余秒数（负值=已过期）
-int64_t     vertify_lease_remaining(vft_handle_t h);
+int64_t     lumistar_lease_remaining(vft_handle_t h);
 
 // ===== 工具 =====
-const char *vertify_err_str(vft_err_t err);
+const char *lumistar_err_str(vft_err_t err);
 // 自检：RFC 7748 X25519 向量 + RFC 8032 Ed25519 向量 + AES-GCM 往返
-vft_err_t   vertify_selftest(void);
+vft_err_t   lumistar_selftest(void);
 
 #ifdef __cplusplus
 } // extern "C"
 
 // ===== C++ RAII 封装 =====
 #include <string>
-namespace vertify {
+namespace lumistar {
 
 class License {
 public:
@@ -119,29 +119,29 @@ public:
 	License(const License &) = delete;
 	License &operator=(const License &) = delete;
 
-	vft_err_t init(const vft_config &cfg) { return vertify_init(&cfg, &h_); }
-	void shutdown() { if (h_) { vertify_shutdown(h_); h_ = nullptr; } }
+	vft_err_t init(const vft_config &cfg) { return lumistar_init(&cfg, &h_); }
+	void shutdown() { if (h_) { lumistar_shutdown(h_); h_ = nullptr; } }
 	bool ok() const { return h_ != nullptr; }
 
 	vft_err_t activate(const std::string &card, vft_activation_result *out = nullptr) {
-		return vertify_activate(h_, card.c_str(), out);
+		return lumistar_activate(h_, card.c_str(), out);
 	}
-	vft_err_t redeem(const std::string &card) { return vertify_redeem(h_, card.c_str()); }
-	vft_err_t deactivate() { return vertify_deactivate(h_); }
+	vft_err_t redeem(const std::string &card) { return lumistar_redeem(h_, card.c_str()); }
+	vft_err_t deactivate() { return lumistar_deactivate(h_); }
 	vft_err_t start_heartbeat(vft_state_cb cb = nullptr, void *user = nullptr) {
-		return vertify_start_heartbeat(h_, cb, user);
+		return lumistar_start_heartbeat(h_, cb, user);
 	}
-	vft_err_t stop_heartbeat() { return vertify_stop_heartbeat(h_); }
+	vft_err_t stop_heartbeat() { return lumistar_stop_heartbeat(h_); }
 
-	vft_state_t state() const { return vertify_get_state(h_); }
-	bool has_feature(const std::string &f) const { return vertify_has_feature(h_, f.c_str()) == 1; }
-	int64_t lease_remaining() const { return vertify_lease_remaining(h_); }
+	vft_state_t state() const { return lumistar_get_state(h_); }
+	bool has_feature(const std::string &f) const { return lumistar_has_feature(h_, f.c_str()) == 1; }
+	int64_t lease_remaining() const { return lumistar_lease_remaining(h_); }
 
 private:
 	vft_handle_t h_ = nullptr;
 };
 
-} // namespace vertify
+} // namespace lumistar
 #endif // __cplusplus
 
 #endif // VERTIFY_LICENSE_SDK_H

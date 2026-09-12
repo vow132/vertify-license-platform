@@ -9,15 +9,15 @@ pip install cryptography requests
 
 ## 文件
 
-- `sdk/python/vertify_client.py` — 集成模块（复制到你的脚本目录）
+- `sdk/python/lumistar_client.py` — 集成模块（复制到你的脚本目录）
 - `sdk/python/example.py` — 完整示例
 
 ## 快速接入（3 行代码）
 
 ```python
-from vertify_client import Vertify
+from lumistar_client import LumistarClient
 
-v = Vertify(server="https://你的服务器:8443", card="用户输入的卡密")
+v = Lumistar(server="https://你的服务器:8443", card="用户输入的卡密")
 v.activate()          # 首次激活（后续自动从本地缓存恢复）
 v.start_heartbeat()   # 后台自动续租
 

@@ -8,7 +8,7 @@
 
 #pragma comment(lib, "bcrypt.lib")
 
-namespace vertify {
+namespace lumistar {
 
 std::vector<uint8_t> Cng::random(size_t n) {
 	std::vector<uint8_t> out(n);
@@ -145,4 +145,4 @@ void Cng::p256_free(KeyPair &k) {
 	}
 }
 
-} // namespace vertify
+} // namespace lumistar

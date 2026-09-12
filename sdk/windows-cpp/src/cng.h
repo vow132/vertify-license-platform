@@ -6,7 +6,7 @@
 #include <windows.h>
 #include <bcrypt.h>
 
-namespace vertify {
+namespace lumistar {
 
 struct Cng {
 	static std::vector<uint8_t> random(size_t n);
@@ -38,4 +38,4 @@ struct Cng {
 	static void p256_free(KeyPair &k);
 };
 
-} // namespace vertify
+} // namespace lumistar

@@ -3,12 +3,12 @@
 注意：当前服务端要求设备 PoP 签名和 /v1/heartbeat，Python 示例尚未实现完整协议，不能用于生产激活。
 请使用 sdk/windows-cpp；本文件仅供协议结构参考。
 """
-from vertify_client import Vertify
+from lumistar_client import LumistarClient
 
 # ===== 你的脚本入口 =====
 def main():
     # ---- 第 1 步：激活 ----
-    v = Vertify(
+    v = LumistarClient(
         server="https://127.0.0.1:8443",     # 你的验证服务器
         card="",                              # 用户输入的卡密，首次激活后可留空
         product="AUXPRO",                     # 产品代码

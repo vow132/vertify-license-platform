@@ -9,14 +9,14 @@
 #pragma comment(lib, "crypt32.lib")
 #pragma comment(lib, "shlwapi.lib")
 
-namespace vertify {
+namespace lumistar {
 
 // ---- DPAPI ----
 
 bool dpapi_protect(const std::vector<uint8_t> &in, std::vector<uint8_t> &out) {
 	DATA_BLOB din{in.size(), (BYTE *)in.data()};
 	DATA_BLOB dout{};
-	if (!CryptProtectData(&din, L"VertifySDK", nullptr, nullptr, nullptr, 0, &dout))
+	if (!CryptProtectData(&din, L"LumistarSDK", nullptr, nullptr, nullptr, 0, &dout))
 		return false;
 	out.assign(dout.pbData, dout.pbData + dout.cbData);
 	LocalFree(dout.pbData);
@@ -135,4 +135,4 @@ bool StateStore::save(const std::string &dir, const SdkState &st) {
 	return true;
 }
 
-} // namespace vertify
+} // namespace lumistar

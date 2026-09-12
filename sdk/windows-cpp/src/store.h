@@ -5,7 +5,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace vertify {
+namespace lumistar {
 
 struct SdkState {
 	// 设备身份
@@ -38,4 +38,4 @@ public:
 bool dpapi_protect(const std::vector<uint8_t> &in, std::vector<uint8_t> &out);
 bool dpapi_unprotect(const std::vector<uint8_t> &in, std::vector<uint8_t> &out);
 
-} // namespace vertify
+} // namespace lumistar

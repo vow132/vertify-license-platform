@@ -1,5 +1,5 @@
 // X25519（RFC 7748）—— 复用 orlp fe.c 域算术（p = 2^255-19，与 Ed25519 同域）
-// 的蒙哥马利阶梯实现。正确性由 RFC 7748 官方向量保证（见 vertify_selftest）。
+// 的蒙哥马利阶梯实现。正确性由 RFC 7748 官方向量保证（见 lumistar_selftest）。
 
 #include <string.h>
 #include <stdint.h>
@@ -8,7 +8,7 @@ extern "C" {
 #include "../third_party/ed25519/src/fe.h"
 }
 
-namespace vertify {
+namespace lumistar {
 
 static void clamp_scalar(unsigned char k[32]) {
 	k[0] &= 248;
@@ -91,4 +91,4 @@ void x25519_public(unsigned char pub[32], const unsigned char scalar[32]) {
 	x25519_scalarmult(pub, scalar, base);
 }
 
-} // namespace vertify
+} // namespace lumistar

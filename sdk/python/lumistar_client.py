@@ -1,11 +1,11 @@
 """
-Vertify 卡密验证 — Python 客户端模块
+Lumistar 卡密验证 — Python 客户端模块
 ====================================
 复制本文件到你的脚本目录，3 行代码接入：
 
-    from vertify_client import Vertify
+    from lumistar_client import LumistarClient
 
-    v = Vertify(server="https://127.0.0.1:8443", card="XXXXX-XXXXX-...")
+    v = LumistarClient(server="https://127.0.0.1:8443", card="XXXXX-XXXXX-...")
     v.activate()
     v.start_heartbeat()
 
@@ -34,7 +34,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 # ============================================================
 # 配置
 # ============================================================
-STATE_DIR = os.path.join(os.environ.get("APPDATA", "."), "Vertify")
+STATE_DIR = os.path.join(os.environ.get("APPDATA", "."), "Lumistar")
 
 
 # ============================================================
@@ -66,7 +66,7 @@ def get_machine_fingerprint() -> list:
 # 主类
 # ============================================================
 @dataclass
-class Vertify:
+class LumistarClient:
     server: str                    # 例如 "https://127.0.0.1:8443"（必须 HTTPS）
     card: str = ""                 # 卡密（首次激活时传入）
     product: str = "AUXPRO"        # 产品代码

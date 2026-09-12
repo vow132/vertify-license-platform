@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(vertify-sdk C CXX)
+project(lumistar-sdk C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -14,7 +14,7 @@ else()
     add_compile_options(-Wall -Wextra)
 endif()
 
-add_library(vertify_sdk STATIC
+add_library(lumistar_sdk STATIC
     src/sdk.cpp
     src/util.cpp
     src/cng.cpp
@@ -29,17 +29,17 @@ add_library(vertify_sdk STATIC
     third_party/ed25519/src/sc.c
 )
 
-target_include_directories(vertify_sdk PUBLIC include)
-target_include_directories(vertify_sdk PRIVATE src third_party/ed25519/src)
-target_link_libraries(vertify_sdk PUBLIC bcrypt ncrypt winhttp crypt32 shlwapi advapi32)
+target_include_directories(lumistar_sdk PUBLIC include)
+target_include_directories(lumistar_sdk PRIVATE src third_party/ed25519/src)
+target_link_libraries(lumistar_sdk PUBLIC bcrypt ncrypt winhttp crypt32 shlwapi advapi32)
 
 # C 库链接顺序（MinGW）
 if (MINGW)
-    target_link_options(vertify_sdk PUBLIC -static)
+    target_link_options(lumistar_sdk PUBLIC -static)
 endif()
 
 add_executable(activate_demo examples/activate_demo/main.cpp)
-target_link_libraries(activate_demo PRIVATE vertify_sdk)
+target_link_libraries(activate_demo PRIVATE lumistar_sdk)
 
 add_executable(selftest tests/selftest.cpp)
-target_link_libraries(selftest PRIVATE vertify_sdk)
+target_link_libraries(selftest PRIVATE lumistar_sdk)

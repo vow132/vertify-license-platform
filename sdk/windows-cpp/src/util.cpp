@@ -5,7 +5,7 @@
 
 #pragma comment(lib, "bcrypt.lib")
 
-namespace vertify {
+namespace lumistar {
 
 static const char B64C[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
@@ -230,4 +230,4 @@ bool Json::parse(const std::string &text, JsonValue &out) {
 	return true;
 }
 
-} // namespace vertify
+} // namespace lumistar

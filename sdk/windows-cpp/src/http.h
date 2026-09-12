@@ -6,7 +6,7 @@
 #include <windows.h>
 #include <winhttp.h>
 
-namespace vertify {
+namespace lumistar {
 
 struct HttpResult {
 	long status = 0;
@@ -38,4 +38,4 @@ private:
 	INTERNET_PORT port_ = 443;
 };
 
-} // namespace vertify
+} // namespace lumistar

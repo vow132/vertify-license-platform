@@ -6,7 +6,7 @@
 #include <windows.h>
 #include <winhttp.h>
 
-namespace vertify {
+namespace lumistar {
 
 std::string b64url_encode(const uint8_t *data, size_t len);
 bool b64url_decode(const std::string &in, std::vector<uint8_t> &out);
@@ -51,4 +51,4 @@ public:
 	}
 };
 
-} // namespace vertify
+} // namespace lumistar

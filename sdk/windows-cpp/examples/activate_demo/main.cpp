@@ -1,5 +1,5 @@
 // 最小接入示例：初始化 → 激活 → 心跳 → 功能门禁。
-#include <vertify/license_sdk.h>
+#include <lumistar/license_sdk.h>
 #include <stdio.h>
 #include <windows.h>
 #include <string.h>
@@ -19,7 +19,7 @@ static void on_state(vft_state_t state, void *user) {
 
 int main(int argc, char **argv) {
 	setvbuf(stdout, NULL, _IONBF, 0);
-	if (vertify_selftest() != VFT_OK) {
+	if (lumistar_selftest() != VFT_OK) {
 		printf("selftest FAILED\n");
 		return 1;
 	}
@@ -37,12 +37,12 @@ int main(int argc, char **argv) {
 	if (insecure_dev_only) {
 		printf("WARNING: TLS certificate verification is disabled for local development only.\n");
 	}
-	// cfg.storage_dir = "D:\\data\\vertify";  // 默认 %PROGRAMDATA%\\Vertify\\AUXPRO
+	// cfg.storage_dir = "D:\\data\\lumistar";  // 默认 %PROGRAMDATA%\\Lumistar\\AUXPRO
 
-	vertify::License lic;
+	lumistar::License lic;
 	vft_err_t ierr = lic.init(cfg);
 	if (ierr != VFT_OK) {
-		printf("init failed: %s (code=%d)\n", vertify_err_str(ierr), ierr);
+		printf("init failed: %s (code=%d)\n", lumistar_err_str(ierr), ierr);
 		return 1;
 	}
 
@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 		if (err == VFT_OK) {
 			printf("activated: license=%s device=%s\n", r.license_id, r.device_id);
 		} else {
-			printf("activate failed: %s\n", vertify_err_str(err));
+			printf("activate failed: %s\n", lumistar_err_str(err));
 			return 1;
 		}
 	} else if (lic.state() == VFT_STATE_NOT_ACTIVATED) {

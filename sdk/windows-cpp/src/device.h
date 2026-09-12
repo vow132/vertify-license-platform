@@ -8,7 +8,7 @@
 #include <bcrypt.h>
 #include <ncrypt.h>
 
-namespace vertify {
+namespace lumistar {
 
 class DeviceKey {
 public:
@@ -40,4 +40,4 @@ private:
 	std::string pubB64_;
 };
 
-} // namespace vertify
+} // namespace lumistar

@@ -1,4 +1,4 @@
-# Vertify — 卡密验证与软件许可平台
+# Lumistar — 卡密验证与软件许可平台
 
 面向 Windows C++ 游戏辅助客户端的企业级卡密（License Key）验证系统：
 
@@ -49,7 +49,7 @@ cd apps/admin-web && npm ci && npm run dev
 
 以下是使用虚构数据绘制的界面示例，不包含真实卡密、账号、设备标识或密钥：
 
-![Vertify 管理后台示例](docs/assets/dashboard.svg)
+![Lumistar 管理后台示例](docs/assets/dashboard.svg)
 
 ## SDK 支持状态
 

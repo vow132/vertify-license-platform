@@ -36,8 +36,8 @@ export default function Login() {
     <div className="login-wrap">
       <div className="login-card">
         <div className="login-brand">
-          <div className="login-brand-logo"><span className="logo-mark">◆</span> Vertify</div>
-          <div className="login-brand-title">商业级卡密验证<br />与授权管理平台</div>
+          <div className="login-brand-logo"><span className="logo-mark">◆</span> Lumistar</div>
+          <div className="login-brand-title">揽星卡密验证<br />与授权管理平台</div>
           <ul className="login-brand-points">
             <li>卡密全生命周期：制卡、激活、续费、冻结、吊销</li>
             <li>机器码绑定与心跳租约，服务端秒级吊销传播</li>
@@ -45,7 +45,7 @@ export default function Login() {
           </ul>
         </div>
         <form className="login-box" onSubmit={submit}>
-          <h1><span className="logo-mark">◆</span> Vertify</h1>
+          <h1><span className="logo-mark">◆</span> Lumistar</h1>
           <div className="sub">许可验证平台 · 管理控制台</div>
         <div className="field">
           <label>用户名</label>

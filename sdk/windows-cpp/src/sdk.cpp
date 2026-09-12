@@ -4,7 +4,7 @@
 #include "http.h"
 #include "device.h"
 #include "store.h"
-#include <vertify/license_sdk.h>
+#include <lumistar/license_sdk.h>
 #include "internal_decl.h"
 extern "C" {
 #include "../third_party/ed25519/src/ed25519.h"
@@ -19,7 +19,7 @@ extern "C" {
 #include <condition_variable>
 #include <sstream>
 
-namespace vertify {
+namespace lumistar {
 
 // ===== 指纹分量采集（只上传 SHA-256 摘要，不含原始序列号） =====
 
@@ -118,7 +118,7 @@ std::string device_auth_header(DeviceKey &key, const std::string &method,
 	}
 	return "v1 pub=" + key.pub_b64() + " ts=" + std::to_string(ts) +
 	       " nonce=" + nonce + " seq=" + std::to_string(seq) +
-	       " sig=" + vertify::b64url_encode(der.data(), der.size());
+	       " sig=" + lumistar::b64url_encode(der.data(), der.size());
 }
 
 // ===== 信封封装（X25519 + HKDF + AES-256-GCM，与 envelope.go 对应） =====
@@ -326,9 +326,9 @@ struct SdkImpl {
 	vft_err_t post_signed(const std::string &path, std::string &body, std::string &resp,
 	                      bool bumpSeq) {
 		int64_t ts = (int64_t)time(nullptr) + server_delta();
-		std::string nonce = vertify::gen_nonce_b64();
+		std::string nonce = lumistar::gen_nonce_b64();
 		int64_t seq = bumpSeq ? ++st.seq : 0;
-		std::string hdr = vertify::device_auth_header(devKey, "POST", path, body, ts, nonce, seq);
+		std::string hdr = lumistar::device_auth_header(devKey, "POST", path, body, ts, nonce, seq);
 		if (hdr.empty()) return VFT_E_CRYPTO;
 		if (getenv("VFT_DEBUG")) fprintf(stderr, "[dbg] hdr=%s\n", hdr.c_str());
 
@@ -361,13 +361,13 @@ struct SdkImpl {
 		JsonValue j;
 		if (!Json::parse(respJson, j)) return VFT_E_BAD_RESPONSE;
 		std::string lease = j.get_str("lease");
-		vertify::LeaseClaims claims;
+		lumistar::LeaseClaims claims;
 		auto pinsSnap = pins_snapshot();
-		if (!vertify::verify_lease(lease, pinsSnap, claims)) {
+		if (!lumistar::verify_lease(lease, pinsSnap, claims)) {
 			if (holds_valid_lease()) {
 				bootstrap(true);
 				pinsSnap = pins_snapshot();
-				if (!vertify::verify_lease(lease, pinsSnap, claims)) return VFT_E_BAD_RESPONSE;
+				if (!lumistar::verify_lease(lease, pinsSnap, claims)) return VFT_E_BAD_RESPONSE;
 			} else {
 				return VFT_E_BAD_RESPONSE;
 			}
@@ -390,8 +390,8 @@ struct SdkImpl {
 		std::string lease = st.lease;
 		mu.unlock();
 		if (lease.empty()) return false;
-		vertify::LeaseClaims c;
-		if (!vertify::verify_lease(lease, pins_snapshot(), c)) return false;
+		lumistar::LeaseClaims c;
+		if (!lumistar::verify_lease(lease, pins_snapshot(), c)) return false;
 		return ((int64_t)time(nullptr) + server_delta()) <= c.exp;
 	}
 
@@ -400,8 +400,8 @@ struct SdkImpl {
 		std::string lease = st.lease;
 		mu.unlock();
 		if (lease.empty()) return VFT_STATE_NOT_ACTIVATED;
-		vertify::LeaseClaims claims;
-		if (!vertify::verify_lease(lease, pins_snapshot(), claims)) return VFT_STATE_ERROR;
+		lumistar::LeaseClaims claims;
+		if (!lumistar::verify_lease(lease, pins_snapshot(), claims)) return VFT_STATE_ERROR;
 		if (claims.status != "active") return VFT_STATE_REVOKED;
 		int64_t now = (int64_t)time(nullptr) + server_delta();
 		if (claims.lex > 0 && now > claims.lex) return VFT_STATE_REVOKED;
@@ -476,23 +476,23 @@ struct SdkImpl {
 };
 
 // ===== C API（全局作用域，C 链接） =====
-} // namespace vertify
+} // namespace lumistar
 
 struct vft_handle_t_ {
-	vertify::SdkImpl *impl;
+	lumistar::SdkImpl *impl;
 };
 
 extern "C" {
 
-typedef vertify::SdkImpl SdkImpl;
-typedef vertify::HttpClient HttpClient;
-typedef vertify::Cng Cng;
+typedef lumistar::SdkImpl SdkImpl;
+typedef lumistar::HttpClient HttpClient;
+typedef lumistar::Cng Cng;
 // 供 C API 使用的命名空间内工具（同 TU 内可见）
-static vertify::SdkImpl *vft_impl_of(vft_handle_t h) { return h ? ((vft_handle_t_ *)h)->impl : nullptr; }
+static lumistar::SdkImpl *vft_impl_of(vft_handle_t h) { return h ? ((vft_handle_t_ *)h)->impl : nullptr; }
 
 static std::string s_err_ok = "ok";
 
-const char *vertify_err_str(vft_err_t err) {
+const char *lumistar_err_str(vft_err_t err) {
 	switch (err) {
 	case VFT_OK: return "ok";
 	case VFT_E_INVALID_ARG: return "invalid argument";
@@ -520,7 +520,7 @@ const char *vertify_err_str(vft_err_t err) {
 	}
 }
 
-vft_err_t vertify_init(const vft_config *cfg, vft_handle_t *out) {
+vft_err_t lumistar_init(const vft_config *cfg, vft_handle_t *out) {
 	if (!cfg || !cfg->server_url || !cfg->product_code || !out) return VFT_E_INVALID_ARG;
 	if (strncmp(cfg->server_url, "https://", 8) != 0) return VFT_E_INVALID_ARG; // 禁明文
 	auto *impl = new SdkImpl();
@@ -530,7 +530,7 @@ vft_err_t vertify_init(const vft_config *cfg, vft_handle_t *out) {
 	} else {
 		char p[MAX_PATH] = {};
 		GetEnvironmentVariableA("APPDATA", p, sizeof(p));
-		impl->dir = std::string(p) + "\\Vertify\\" + cfg->product_code;
+		impl->dir = std::string(p) + "\\Lumistar\\" + cfg->product_code;
 	}
 	impl->http = new HttpClient(cfg->server_url, cfg->insecure_skip_tls_verify != 0);
 	if (!impl->http->valid()) {
@@ -558,7 +558,7 @@ vft_err_t vertify_init(const vft_config *cfg, vft_handle_t *out) {
 	return VFT_OK;
 }
 
-void vertify_shutdown(vft_handle_t h) {
+void lumistar_shutdown(vft_handle_t h) {
 	if (!h) return;
 	auto *impl = ((vft_handle_t_ *)h)->impl;
 	impl->hbRun = false;
@@ -586,12 +586,12 @@ static std::string json_escape(const std::string &s) {
 	return out;
 }
 
-extern "C" vft_err_t vertify_activate(vft_handle_t h, const char *card, vft_activation_result *out) {
+extern "C" vft_err_t lumistar_activate(vft_handle_t h, const char *card, vft_activation_result *out) {
 	if (!h || !card) return VFT_E_INVALID_ARG;
 	auto *impl = ((vft_handle_t_ *)h)->impl;
 	if (!impl->bootstrap()) return VFT_E_NETWORK;
 
-	auto comps = vertify::collect_components();
+	auto comps = lumistar::collect_components();
 	std::ostringstream payload;
 	payload << "{\"card\":\"" << json_escape(card) << "\",\"components\":[";
 	for (size_t i = 0; i < comps.size(); i++) {
@@ -604,7 +604,7 @@ extern "C" vft_err_t vertify_activate(vft_handle_t h, const char *card, vft_acti
 		        << "\"client_version\":\"" << json_escape(impl->cfg.client_version ? impl->cfg.client_version : "") << "\"}";
 
 	std::string env;
-	if (!vertify::seal_envelope(impl->activeKexKid, impl->activeKexPub, "activate", payload.str(), env))
+	if (!lumistar::seal_envelope(impl->activeKexKid, impl->activeKexPub, "activate", payload.str(), env))
 		return VFT_E_CRYPTO;
 
 	std::string empty = "";
@@ -624,13 +624,13 @@ extern "C" vft_err_t vertify_activate(vft_handle_t h, const char *card, vft_acti
 	return VFT_OK;
 }
 
-vft_err_t vertify_redeem(vft_handle_t h, const char *renewal_card) {
+vft_err_t lumistar_redeem(vft_handle_t h, const char *renewal_card) {
 	if (!h || !renewal_card) return VFT_E_INVALID_ARG;
 	auto *impl = ((vft_handle_t_ *)h)->impl;
 	if (!impl->bootstrap()) return VFT_E_NETWORK;
 	std::string payload = std::string("{\"card\":\"") + renewal_card + "\"}";
 	std::string env;
-	if (!vertify::seal_envelope(impl->activeKexKid, impl->activeKexPub, "redeem", payload, env))
+	if (!lumistar::seal_envelope(impl->activeKexKid, impl->activeKexPub, "redeem", payload, env))
 		return VFT_E_CRYPTO;
 	std::string resp;
 	vft_err_t err = impl->post_signed("/v1/redeem", env, resp, true);
@@ -638,7 +638,7 @@ vft_err_t vertify_redeem(vft_handle_t h, const char *renewal_card) {
 	return impl->adopt_lease(resp);
 }
 
-vft_err_t vertify_deactivate(vft_handle_t h) {
+vft_err_t lumistar_deactivate(vft_handle_t h) {
 	if (!h) return VFT_E_INVALID_ARG;
 	auto *impl = ((vft_handle_t_ *)h)->impl;
 	std::string body = "{\"device_id\":\"" + impl->st.device_id + "\"}";
@@ -653,7 +653,7 @@ vft_err_t vertify_deactivate(vft_handle_t h) {
 	return err;
 }
 
-vft_err_t vertify_start_heartbeat(vft_handle_t h, vft_state_cb cb, void *user) {
+vft_err_t lumistar_start_heartbeat(vft_handle_t h, vft_state_cb cb, void *user) {
 	if (!h) return VFT_E_INVALID_ARG;
 	auto *impl = ((vft_handle_t_ *)h)->impl;
 	std::lock_guard<std::mutex> lk(impl->hbMtx);
@@ -665,7 +665,7 @@ vft_err_t vertify_start_heartbeat(vft_handle_t h, vft_state_cb cb, void *user) {
 	return VFT_OK;
 }
 
-vft_err_t vertify_stop_heartbeat(vft_handle_t h) {
+vft_err_t lumistar_stop_heartbeat(vft_handle_t h) {
 	if (!h) return VFT_E_INVALID_ARG;
 	auto *impl = ((vft_handle_t_ *)h)->impl;
 	{
@@ -678,12 +678,12 @@ vft_err_t vertify_stop_heartbeat(vft_handle_t h) {
 	return VFT_OK;
 }
 
-vft_state_t vertify_get_state(vft_handle_t h) {
+vft_state_t lumistar_get_state(vft_handle_t h) {
 	if (!h) return VFT_STATE_ERROR;
 	return ((vft_handle_t_ *)h)->impl->current_state();
 }
 
-int vertify_has_feature(vft_handle_t h, const char *feature) {
+int lumistar_has_feature(vft_handle_t h, const char *feature) {
 	if (!h || !feature) return 0;
 	auto *impl = ((vft_handle_t_ *)h)->impl;
 	std::string lease;
@@ -694,8 +694,8 @@ int vertify_has_feature(vft_handle_t h, const char *feature) {
 		dev = impl->st.device_id;
 	}
 
-	vertify::LeaseClaims claims;
-	if (!vertify::verify_lease(lease, impl->pins_snapshot(), claims)) return 0; // 签名必须有效
+	lumistar::LeaseClaims claims;
+	if (!lumistar::verify_lease(lease, impl->pins_snapshot(), claims)) return 0; // 签名必须有效
 	if (claims.status != "active") return 0;                        // 服务端状态
 	int64_t now = (int64_t)time(nullptr) + impl->server_delta();
 	if (now > claims.exp) return 0;                                 // 租约必须未过期
@@ -706,7 +706,7 @@ int vertify_has_feature(vft_handle_t h, const char *feature) {
 	return 0;
 }
 
-int64_t vertify_lease_remaining(vft_handle_t h) {
+int64_t lumistar_lease_remaining(vft_handle_t h) {
 	if (!h) return 0;
 	auto *impl = ((vft_handle_t_ *)h)->impl;
 	impl->mu.lock();
@@ -715,7 +715,7 @@ int64_t vertify_lease_remaining(vft_handle_t h) {
 	return exp - ((int64_t)time(nullptr) + impl->server_delta());
 }
 
-vft_err_t vertify_selftest(void) {
+vft_err_t lumistar_selftest(void) {
 	// RFC 7748 §5.2 测试向量 1
 	static const unsigned char scalar1[32] = {
 		0xa5, 0x46, 0xe3, 0x6b, 0xf0, 0x52, 0x7c, 0x9d, 0x3b, 0x16, 0x15, 0x4b,
@@ -730,7 +730,7 @@ vft_err_t vertify_selftest(void) {
 		0xf2, 0x8d, 0x08, 0x4f, 0x32, 0xec, 0xcf, 0x03, 0x49, 0x1c, 0x71, 0xf7,
 		0x54, 0xb4, 0x07, 0x55, 0x77, 0xa2, 0x85, 0x52};
 	unsigned char out[32];
-	vertify::x25519_scalarmult(out, scalar1, u1);
+	lumistar::x25519_scalarmult(out, scalar1, u1);
 	if (memcmp(out, expect1, 32) != 0) return VFT_E_CRYPTO;
 
 	// RFC 7748 §6.1 X25519 端到端向量
@@ -746,7 +746,7 @@ vft_err_t vertify_selftest(void) {
 		0x4a, 0x5d, 0x9d, 0x5b, 0xa4, 0xce, 0x2d, 0xe1, 0x72, 0x8e, 0x3b, 0xf4,
 		0x80, 0x35, 0x0f, 0x25, 0xe0, 0x7e, 0x21, 0xc9, 0x47, 0xd1, 0x9e, 0x33,
 		0x76, 0xf0, 0x9b, 0x3c, 0x1e, 0x16, 0x17, 0x42};
-	vertify::x25519_scalarmult(out, alicep, bobpub);
+	lumistar::x25519_scalarmult(out, alicep, bobpub);
 	if (memcmp(out, shared_expect, 32) != 0) return VFT_E_CRYPTO;
 
 	// RFC 8032 §7.1 Ed25519 验签向量（TEST 1，空消息；与 Go crypto/ed25519 一致性已交叉验证）

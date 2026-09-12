@@ -15,7 +15,7 @@
 #pragma comment(lib, "ncrypt.lib")
 #pragma comment(lib, "bcrypt.lib")
 
-namespace vertify {
+namespace lumistar {
 
 void DeviceKey::set_pub(const std::vector<uint8_t> &pub) {
 	pub_ = pub;
@@ -28,7 +28,7 @@ bool DeviceKey::try_tpm() {
 	SECURITY_STATUS st = NCryptOpenStorageProvider(&prov, MS_PLATFORM_CRYPTO_PROVIDER, 0);
 	if (st != ERROR_SUCCESS) return false;
 
-	const wchar_t *keyName = L"VertifyDeviceKey";
+	const wchar_t *keyName = L"LumistarDeviceKey";
 	NCRYPT_KEY_HANDLE key = 0;
 	st = NCryptOpenKey(prov, &key, keyName, 0, 0);
 	if (st != ERROR_SUCCESS) {
@@ -141,4 +141,4 @@ bool DeviceKey::sign_digest(const uint8_t digest[32], std::vector<uint8_t> &der)
 	return false;
 }
 
-} // namespace vertify
+} // namespace lumistar

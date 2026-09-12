@@ -122,7 +122,7 @@ function Shell({ me, children }: { me: Me; children: React.ReactNode }) {
         onClick={() => setSidebarOpen(false)}
       />
       <aside className={`sidebar${sidebarOpen ? ' open' : ''}`}>
-        <div className="logo"><span className="logo-mark">◆</span> Vertify</div>
+        <div className="logo"><span className="logo-mark">◆</span> Lumistar</div>
         {NAV_GROUPS.map((g) => (
           <div key={g.label || 'main'}>
             {g.label && <div className="nav-group-label">{g.label}</div>}
@@ -201,7 +201,7 @@ function MustChangePassword({ onDone }: { onDone: () => void }) {
   return (
     <div className="login-wrap">
       <form className="login-box" onSubmit={submit}>
-        <h1><span className="logo-mark">◆</span> Vertify</h1>
+        <h1><span className="logo-mark">◆</span> Lumistar</h1>
         <div className="sub">安全要求：首次登录必须修改初始口令</div>
         <div className="field">
           <label>当前口令</label>

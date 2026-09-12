@@ -4,7 +4,7 @@
 
 ## 构建产物
 
-- `vertify_sdk`（静态库；MinGW/MSVC 均支持，MSVC 发布构建启用 CFG/ASLR/DEP/GS）
+- `lumistar_sdk`（静态库；MinGW/MSVC 均支持，MSVC 发布构建启用 CFG/ASLR/DEP/GS）
 - `activate_demo.exe`（最小接入示例）
 - `selftest.exe`（密码学自检：RFC 7748 X25519 向量、RFC 8032 Ed25519 向量、AES-GCM 往返）
 
@@ -15,14 +15,14 @@
 ## 最小接入（约 20 行）
 
 ```cpp
-#include <vertify/license_sdk.h>
+#include <lumistar/license_sdk.h>
 
 // 1. 初始化（进程内一次）
 vft_config cfg = {};
 cfg.server_url    = "https://api.example.com";   // 仅 HTTPS
 cfg.product_code  = "AUXPRO";
 cfg.client_version = "1.2.0";                    // 最低版本策略用
-vertify::License lic;
+lumistar::License lic;
 lic.init(cfg);
 
 // 2. 首次激活（用户输入卡密；此后本地缓存租约，无需重复激活）
@@ -45,7 +45,7 @@ if (lic.has_feature("aimbot")) {
 | 行为 | 说明 |
 |---|---|
 | 设备密钥 | 优先 TPM（NCrypt 平台加密提供程序，ECDSA P-256），无 TPM 回退 DPAPI 保护的软件密钥 |
-| 本地状态 | `%APPDATA%\Vertify\<product>\state.bin`，DPAPI（当前用户域）加密、原子写 |
+| 本地状态 | `%APPDATA%\Lumistar\<product>\state.bin`，DPAPI（当前用户域）加密、原子写 |
 | 心跳 | 启动立即发送首次心跳（重开应用秒级恢复授权）；周期 = 套餐 `heartbeat_interval_seconds` ± 10% 抖动；失败指数退避（最多 5×） |
 | 掉线判定 | 租约过期 = `VFT_STATE_STALE`；服务端冻结/吊销 = `VFT_STATE_REVOKED`（回调即时通知） |
 | 换机 | 新设备激活受设备名额限制；旧设备 `DeactivateDevice` 或管理员解绑后可重绑 |
@@ -55,7 +55,7 @@ if (lic.has_feature("aimbot")) {
 
 ## 错误处理
 
-`vft_err_t` 结构化错误码（`vertify_err_str` 提供文案）。业务建议：
+`vft_err_t` 结构化错误码（`lumistar_err_str` 提供文案）。业务建议：
 
 - `VFT_E_NETWORK` / `VFT_E_BAD_RESPONSE`：暂时性，提示重试
 - `VFT_E_LICENSE_FROZEN/REVOKED/EXPIRED`、`VFT_E_CARD_*`：按运营策略引导（续费/联系客服）
