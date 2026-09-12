@@ -35,7 +35,7 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <form className="login-box" onSubmit={submit}>
-        <h1>◆ Vertify</h1>
+        <h1><span className="logo-mark">◆</span> Vertify</h1>
         <div className="sub">许可验证平台 · 管理控制台</div>
         <div className="field">
           <label>用户名</label>
@@ -57,7 +57,7 @@ export default function Login() {
           </div>
         )}
         {err && <div className="error-text">{err}</div>}
-        <button type="submit" disabled={busy || !username || !password} style={{ width: '100%' }}>
+        <button type="submit" disabled={busy || !username || !password}>
           {busy ? '登录中…' : needTotp ? '验证并登录' : '登录'}
         </button>
       </form>

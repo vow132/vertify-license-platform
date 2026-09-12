@@ -19,6 +19,7 @@ import Release from './pages/Release'
 import Limits from './pages/Limits'
 import SecuritySettings from './pages/SecuritySettings'
 import { PermissionContext } from './auth'
+import { ROLE_CN } from './components'
 
 export interface AdminInfo {
   id: string
@@ -108,7 +109,7 @@ function Shell({ me, children }: { me: Me; children: React.ReactNode }) {
   return (
     <div className="layout">
       <aside className="sidebar">
-        <div className="logo">◆ Vertify</div>
+        <div className="logo"><span className="logo-mark">◆</span> Vertify</div>
         {NAV_GROUPS.map((g) => (
           <div key={g.label || 'main'}>
             {g.label && <div className="nav-group-label">{g.label}</div>}
@@ -120,10 +121,11 @@ function Shell({ me, children }: { me: Me; children: React.ReactNode }) {
           </div>
         ))}
         <div className="spacer" />
-        <div className="muted" style={{ padding: '6px 10px' }}>
-          {me.admin.display_name}（{me.admin.role}）
+        <div className="side-user">
+          <div className="side-user-name">{me.admin.display_name}</div>
+          <div className="side-user-role">{ROLE_CN[me.admin.role] || me.admin.role}</div>
           {me.balance_cents !== undefined && (
-            <div style={{ color: 'var(--ok)', fontWeight: 600 }}>余额 {(me.balance_cents / 100).toFixed(2)} 元</div>
+            <div className="side-user-balance">余额 {(me.balance_cents / 100).toFixed(2)} 元</div>
           )}
         </div>
         <button className="ghost" onClick={logout}>
@@ -170,7 +172,7 @@ function MustChangePassword({ onDone }: { onDone: () => void }) {
   return (
     <div className="login-wrap">
       <form className="login-box" onSubmit={submit}>
-        <h1>◆ Vertify</h1>
+        <h1><span className="logo-mark">◆</span> Vertify</h1>
         <div className="sub">安全要求：首次登录必须修改初始口令</div>
         <div className="field">
           <label>当前口令</label>
@@ -185,7 +187,7 @@ function MustChangePassword({ onDone }: { onDone: () => void }) {
           <input type="password" value={newPw2} onChange={(e) => setNewPw2(e.target.value)} />
         </div>
         {err && <div className="error-text">{err}</div>}
-        <button type="submit" disabled={busy || !oldPw || newPw.length < 12} style={{ width: '100%' }}>
+        <button type="submit" disabled={busy || !oldPw || newPw.length < 12}>
           {busy ? '提交中…' : '修改口令并继续'}
         </button>
       </form>
