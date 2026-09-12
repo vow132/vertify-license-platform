@@ -61,8 +61,14 @@ export function useMe() {
   useEffect(() => {
     refresh()
     const onUnauthorized = () => setMe(null)
+    // 制卡扣款 / 余额调整后让侧栏余额立即刷新
+    const onMeRefresh = () => refresh()
     window.addEventListener('vft:unauthorized', onUnauthorized)
-    return () => window.removeEventListener('vft:unauthorized', onUnauthorized)
+    window.addEventListener('vft:me-refresh', onMeRefresh)
+    return () => {
+      window.removeEventListener('vft:unauthorized', onUnauthorized)
+      window.removeEventListener('vft:me-refresh', onMeRefresh)
+    }
   }, [])
   return { me, loading, refresh }
 }

@@ -66,6 +66,7 @@ export default function Agents() {
       }
       setName('')
       setAcct({ username: '', password: '' })
+      window.dispatchEvent(new Event('vft:me-refresh'))
       load()
     } catch (e) { setErr((e as Error).message) } finally { setBusy(false) }
   }
@@ -124,6 +125,7 @@ export default function Agents() {
                   amount_yuan: amount, note: bal.note.trim(),
                 })
                 setBal(null)
+                window.dispatchEvent(new Event('vft:me-refresh'))
                 load()
               } catch (e) {
                 setErr((e as Error).message)

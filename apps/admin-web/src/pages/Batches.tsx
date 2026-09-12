@@ -83,6 +83,7 @@ export default function Batches() {
       const r = await post<{ batch: Batch; cards: string[] }>('/admin/v1/batches', payload)
       setShow(false)
       setOutput({ batchId: r.batch.id, cards: r.cards })
+      window.dispatchEvent(new Event('vft:me-refresh'))
       load()
     } catch (e) {
       setErr((e as Error).message)
