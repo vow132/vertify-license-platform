@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Routes, Route, NavLink, Navigate, useNavigate } from 'react-router-dom'
+import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { get, post, setCsrf } from './api'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -102,6 +102,13 @@ const NAV_GROUPS: NavGroup[] = [
 
 function Shell({ me, children }: { me: Me; children: React.ReactNode }) {
   const nav = useNavigate()
+  const { pathname } = useLocation()
+  const navItems = NAV_GROUPS.flatMap((g) => g.items)
+  const current =
+    navItems.find((n) => n.to === pathname) ||
+    navItems.find((n) => n.to !== '/' && pathname.startsWith(n.to))
+  const currentGroup = current ? NAV_GROUPS.find((g) => g.items.includes(current)) : undefined
+  const crumb = current ? (currentGroup?.label ? `${currentGroup.label} / ${current.label}` : current.label) : '仪表盘'
   const logout = async () => {
     await post('/admin/v1/auth/logout')
     nav('/login')
@@ -128,11 +135,18 @@ function Shell({ me, children }: { me: Me; children: React.ReactNode }) {
             <div className="side-user-balance">余额 {(me.balance_cents / 100).toFixed(2)} 元</div>
           )}
         </div>
-        <button className="ghost" onClick={logout}>
-          退出登录
-        </button>
       </aside>
-      <main className="main"><PermissionContext.Provider value={me.permissions}>{children}</PermissionContext.Provider></main>
+      <div className="layout-main">
+        <header className="topbar">
+          <div className="topbar-title">{crumb}</div>
+          <div className="topbar-user">
+            <span className="topbar-name">{me.admin.display_name}</span>
+            <span className="badge info">{ROLE_CN[me.admin.role] || me.admin.role}</span>
+            <button className="ghost small" onClick={logout}>退出登录</button>
+          </div>
+        </header>
+        <main className="main"><PermissionContext.Provider value={me.permissions}>{children}</PermissionContext.Provider></main>
+      </div>
     </div>
   )
 }
