@@ -48,12 +48,14 @@ func AdminRouter(svc *service.Services, trustedProxies []*net.IPNet) http.Handle
 			r.Post("/auth/mfa/disable", handleMFADisable(svc))
 			r.Post("/auth/password", handlePasswordChange(svc))
 
-			r.Get("/products", requirePerm(svc, domain.PermProductsRead)(handleListProducts(svc)))
+			// 产品/套餐目录对全部已登录管理员只读开放：代理商制卡下拉需要；
+			// 目录本身不含敏感数据，管理（写）仍需 products:write。
+			r.Get("/products", handleListProducts(svc))
 			r.Post("/products", requirePerm(svc, domain.PermProductsWrite)(handleCreateProduct(svc)))
 			r.Post("/products/{id}/status", requirePerm(svc, domain.PermProductsWrite)(handleProductStatus(svc)))
-			r.Get("/plans", requirePerm(svc, domain.PermProductsRead)(handleListPlans(svc)))
+			r.Get("/plans", handleListPlans(svc))
 			r.Post("/plans", requirePerm(svc, domain.PermProductsWrite)(handleCreatePlan(svc)))
-			r.Get("/plans/{id}", requirePerm(svc, domain.PermProductsRead)(handlePlanDetail(svc)))
+			r.Get("/plans/{id}", handlePlanDetail(svc))
 			r.Put("/plans/{id}", requirePerm(svc, domain.PermProductsWrite)(handleUpdatePlan(svc)))
 			r.Delete("/plans/{id}", requirePerm(svc, domain.PermProductsWrite)(handleDeletePlan(svc)))
 			r.Post("/plans/{id}/status", requirePerm(svc, domain.PermProductsWrite)(handlePlanStatus(svc)))
@@ -726,19 +728,24 @@ func handleListAgents(svc *service.Services) http.HandlerFunc {
 func handleCreateAgent(svc *service.Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			Name     string  `json:"name"`
-			ParentID *string `json:"parent_id"`
+			Name            string  `json:"name"`
+			ParentID        *string `json:"parent_id"`
+			AccountUsername string  `json:"account_username"`
+			AccountPassword string  `json:"account_password"`
 		}
 		if err := decodeJSON(r, &req); err != nil {
 			ErrorWriter(w, r, nil, 400, "BAD_REQUEST", "请求体无效")
 			return
 		}
-		a, err := svc.CreateAgent(r.Context(), adminCtx(r), req.Name, req.ParentID, ClientIP(r), RequestID(r))
+		a, account, err := svc.CreateAgent(r.Context(), adminCtx(r), req.Name, req.ParentID, req.AccountUsername, req.AccountPassword, ClientIP(r), RequestID(r))
 		if err != nil {
 			MapError(w, r, err)
 			return
 		}
-		writeJSON(w, 201, a)
+		writeJSON(w, 201, struct {
+			*store.Agent
+			Account *service.AgentAccount `json:"account,omitempty"`
+		}{a, account})
 	}
 }
 

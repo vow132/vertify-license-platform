@@ -102,9 +102,11 @@ var rolePermissions = map[AdminRole][]Permission{
 		PermLicensesRead, PermLicensesManage, PermDevicesManage,
 		PermAuditRead, PermRiskManage, PermStatsRead,
 	},
+	// 代理商只运营自己的卡密：制卡、查看/导出/管理自己名下的卡与授权。
+	// 产品目录列表对全部已登录管理员开放（制卡下拉需要），但管理权不在代理商。
 	AdminAgent: {
-		PermProductsRead, PermCardsRead, PermCardsManage,
-		PermLicensesRead, PermDevicesManage, PermStatsRead,
+		PermCardsRead, PermCardsExport, PermCardsManage,
+		PermLicensesRead,
 	},
 	AdminAuditor: {PermAuditRead, PermStatsRead, PermCardsRead, PermLicensesRead},
 	AdminViewer:  {PermCardsRead, PermLicensesRead, PermStatsRead, PermProductsRead},

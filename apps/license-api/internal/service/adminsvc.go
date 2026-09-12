@@ -635,18 +635,64 @@ func (s *Services) PlanStatus(ctx context.Context, ac *AdminContext, id, status,
 
 // ===== 代理商 / 管理员 =====
 
-func (s *Services) CreateAgent(ctx context.Context, ac *AdminContext, name string, parentID *string, ip, requestID string) (*store.Agent, error) {
-	if ac != nil && ac.Admin.Role == string(domain.AdminAgent) {
+// AgentAccount 代理商登录账号。Password 仅在创建响应中出现一次，不落库明文。
+type AgentAccount struct {
+	Username string `json:"username"`
+	Password string `json:"password,omitempty"`
+}
+
+func (s *Services) CreateAgent(ctx context.Context, ac *AdminContext, name string, parentID *string, accountUsername, accountPassword string, ip, requestID string) (*store.Agent, *AgentAccount, error) {
+	isAgentSelf := ac != nil && ac.Admin.Role == string(domain.AdminAgent)
+	if isAgentSelf {
 		if ac.Admin.AgentID == nil || parentID == nil || *parentID != *ac.Admin.AgentID {
-			return nil, domain.ErrCardNotFound
+			return nil, nil, domain.ErrCardNotFound
 		}
 	}
-	a, err := s.Store.Q().CreateAgent(ctx, name, parentID)
+	// 创建登录账号是超管能力：避免下级代理自行造号
+	if accountUsername != "" && ac != nil && ac.Admin.Role != string(domain.AdminSuperAdmin) {
+		return nil, nil, errors.New("only superadmin can create agent accounts")
+	}
+	var account *AgentAccount
+	var adminRow *store.Admin
+	var a *store.Agent
+	var err error
+	err = s.Store.WithTx(ctx, func(q *store.Queries) error {
+		var e error
+		a, e = q.CreateAgent(ctx, name, parentID)
+		if e != nil {
+			return e
+		}
+		if accountUsername != "" {
+			if len(accountPassword) < 12 {
+				return errors.New("password must be >= 12 chars")
+			}
+			hash, e := hashPassword(accountPassword)
+			if e != nil {
+				return e
+			}
+			agentID := a.ID
+			adminRow, e = q.CreateAdmin(ctx, &store.Admin{
+				Username: accountUsername, PasswordHash: hash, DisplayName: name,
+				Role: string(domain.AdminAgent), AgentID: &agentID, MustChangePassword: true,
+			})
+			if e != nil {
+				return e
+			}
+		}
+		return nil
+	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	if adminRow != nil {
+		account = &AgentAccount{Username: adminRow.Username, Password: accountPassword}
 	}
 	s.Audit(ctx, ac, "agent.create", "agent", a.ID, nil, a, nil, ip, requestID)
-	return a, nil
+	if account != nil {
+		s.Audit(ctx, ac, "admin.create", "admin", adminRow.ID, nil,
+			map[string]any{"username": adminRow.Username, "role": adminRow.Role, "agent_id": a.ID}, nil, ip, requestID)
+	}
+	return a, account, nil
 }
 
 func (s *Services) AgentStatus(ctx context.Context, ac *AdminContext, id, status, ip, requestID string) error {

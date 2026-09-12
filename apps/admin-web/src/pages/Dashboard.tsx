@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { get } from '../api'
+import { usePermissions } from '../auth'
 import { DonutChart, TrendBarChart } from '../components/charts'
 import { IconAlert, IconCard, IconCardCheck, IconDevice, IconLayers, IconShield, IconTrend, IconUsers } from '../components/icons'
+import { Link } from 'react-router-dom'
 
 interface Stats {
   products: number
@@ -16,12 +18,39 @@ interface Stats {
 }
 
 export default function Dashboard() {
+  const perms = usePermissions()
   const [st, setSt] = useState<Stats | null>(null)
   const [err, setErr] = useState('')
   useEffect(() => {
+    if (!perms.includes('stats:read')) return
     get<Stats>('/admin/v1/stats').then(setSt).catch((e) => setErr(e.message))
-  }, [])
+  }, [perms])
   if (err) return <div className="panel error-text">{err}</div>
+  // 代理商等无全局统计权限的角色：显示业务入口首页，而不是全局数据
+  if (!perms.includes('stats:read')) {
+    return (
+      <>
+        <h2 className="page-title">工作台</h2>
+        <div className="panel intro-panel">
+          <p>欢迎回来。您可以在这里<strong>制作卡密</strong>、查看自己名下的<strong>卡密</strong>与<strong>已激活授权</strong>。制卡会按套餐价格从您的代理余额中扣款。</p>
+        </div>
+        <div className="stats">
+          <Link to="/batches" className="stat" style={{ textDecoration: 'none' }}>
+            <div className="stat-head"><span className="stat-icon"><IconCard /></span><span className="stat-label">制作卡密</span></div>
+            <div className="num accent">→</div>
+          </Link>
+          <Link to="/cards" className="stat" style={{ textDecoration: 'none' }}>
+            <div className="stat-head"><span className="stat-icon"><IconCardCheck /></span><span className="stat-label">我的卡密</span></div>
+            <div className="num accent">→</div>
+          </Link>
+          <Link to="/licenses" className="stat" style={{ textDecoration: 'none' }}>
+            <div className="stat-head"><span className="stat-icon"><IconShield /></span><span className="stat-label">已激活授权</span></div>
+            <div className="num accent">→</div>
+          </Link>
+        </div>
+      </>
+    )
+  }
   if (!st) return <div className="panel muted">加载中…</div>
   const cards = st.cards_by_status || {}
   const stats: { label: string; value: string | number; cls?: string; icon: React.ReactNode }[] = [

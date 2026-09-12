@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"strings"
@@ -77,7 +78,7 @@ func (a *adminSession) post(t *testing.T, path string, body any) (int, []byte) {
 	}
 	defer resp.Body.Close()
 	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(resp.Body)
+	_, _ = io.Copy(&buf, resp.Body)
 	return resp.StatusCode, buf.Bytes()
 }
 
@@ -90,7 +91,7 @@ func (a *adminSession) get(t *testing.T, path string) (int, []byte) {
 	}
 	defer resp.Body.Close()
 	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(resp.Body)
+	_, _ = io.Copy(&buf, resp.Body)
 	return resp.StatusCode, buf.Bytes()
 }
 
@@ -345,6 +346,66 @@ func TestLoginRateLimit(t *testing.T) {
 		}
 	}
 	t.Fatalf("login rate limit not enforced, last=%d", lastStatus)
+}
+
+// TestAgentAccountCreationAndScope 创建代理商一步生成登录账号；代理商权限仅限卡密业务。
+func TestAgentAccountCreationAndScope(t *testing.T) {
+	e := setupEnv(t)
+	fx := seedFixture(t, e)
+
+	st, body := e.admin.post(t, "/admin/v1/agents", map[string]any{
+		"name":             fmt.Sprintf("acct-%d", time.Now().UnixNano()),
+		"account_username": fmt.Sprintf("acct%d", randSuffix(t)),
+		"account_password": "agent-password-123",
+	})
+	if st != 201 {
+		t.Fatalf("create agent with account: %d %s", st, body)
+	}
+	var resp struct {
+		ID      string `json:"id"`
+		Account struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		} `json:"account"`
+	}
+	_ = json.Unmarshal(body, &resp)
+	if resp.Account.Username == "" || resp.Account.Password == "" {
+		t.Fatalf("account credentials not returned: %s", body)
+	}
+
+	// 给代理充值，保证制卡扣款可用
+	if st, body = e.admin.post(t, "/admin/v1/agents/"+resp.ID+"/balance", map[string]any{"amount_yuan": 100, "note": "test"}); st != 200 {
+		t.Fatalf("agent topup: %d %s", st, body)
+	}
+
+	ag := newAdminSession(t, e, resp.Account.Username, resp.Account.Password)
+
+	// 产品/套餐目录对代理商只读开放（制卡下拉数据源）
+	if st, body = ag.get(t, "/admin/v1/products"); st != 200 {
+		t.Fatalf("agent products list: %d %s", st, body)
+	}
+	if st, body = ag.get(t, "/admin/v1/plans"); st != 200 {
+		t.Fatalf("agent plans list: %d %s", st, body)
+	}
+
+	// 权限收紧：全局统计、产品写入、代理商管理对代理商必须 403
+	if st, _ = ag.get(t, "/admin/v1/stats"); st != 403 {
+		t.Fatalf("agent stats must be 403, got %d", st)
+	}
+	if st, _ = ag.post(t, "/admin/v1/products", map[string]any{"code": "X1", "name": "x"}); st != 403 {
+		t.Fatalf("agent product create must be 403, got %d", st)
+	}
+	if st, _ = ag.get(t, "/admin/v1/agents"); st != 403 {
+		t.Fatalf("agent list agents must be 403, got %d", st)
+	}
+
+	// 代理商可以制卡（归属自己的代理）
+	st, body = ag.post(t, "/admin/v1/batches", map[string]any{
+		"product_id": fx.ProductID, "plan_id": fx.PlanID, "kind": "license", "quantity": 1,
+	})
+	if st != 201 {
+		t.Fatalf("agent create batch: %d %s", st, body)
+	}
 }
 
 // randSuffix 生成测试资源后缀（Windows 计时器精度不足，UnixNano 偶发重复）。

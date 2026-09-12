@@ -70,7 +70,7 @@ export function useMe() {
 interface NavGroup { label: string; items: { to: string; label: string; perm: string }[] }
 const NAV_GROUPS: NavGroup[] = [
   { label: '', items: [
-    { to: '/', label: '仪表盘', perm: 'stats:read' },
+    { to: '/', label: '仪表盘', perm: '' },
   ]},
   { label: '卡密业务', items: [
     { to: '/products', label: '产品管理', perm: 'products:read' },
@@ -92,7 +92,7 @@ const NAV_GROUPS: NavGroup[] = [
     { to: '/limits', label: '接口限流', perm: 'risk:manage' },
   ]},
   { label: '账户安全', items: [
-    { to: '/security', label: '安全设置', perm: 'stats:read' },
+    { to: '/security', label: '安全设置', perm: '' },
   ]},
   { label: '运营工具', items: [
     { to: '/release', label: '公告与版本', perm: 'products:read' },
@@ -123,16 +123,20 @@ function Shell({ me, children }: { me: Me; children: React.ReactNode }) {
       />
       <aside className={`sidebar${sidebarOpen ? ' open' : ''}`}>
         <div className="logo"><span className="logo-mark">◆</span> Lumistar</div>
-        {NAV_GROUPS.map((g) => (
-          <div key={g.label || 'main'}>
-            {g.label && <div className="nav-group-label">{g.label}</div>}
-            {g.items.filter((n) => me.permissions.includes(n.perm)).map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.to === '/'}>
-                {n.label}
-              </NavLink>
-            ))}
-          </div>
-        ))}
+        {NAV_GROUPS.map((g) => {
+          const visible = g.items.filter((n) => !n.perm || me.permissions.includes(n.perm))
+          if (visible.length === 0) return null
+          return (
+            <div key={g.label || 'main'}>
+              {g.label && <div className="nav-group-label">{g.label}</div>}
+              {visible.map((n) => (
+                <NavLink key={n.to} to={n.to} end={n.to === '/'}>
+                  {n.label}
+                </NavLink>
+              ))}
+            </div>
+          )
+        })}
         <div className="spacer" />
         <div className="side-user">
           <div className="side-user-name">{me.admin.display_name}</div>
