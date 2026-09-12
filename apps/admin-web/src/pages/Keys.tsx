@@ -20,7 +20,7 @@ export default function Keys() {
       <h2 className="page-title">密钥状态（只读）</h2>
       <div className="panel">
         <h3 style={{ marginTop: 0 }}>信封加密密钥（X25519）</h3>
-        <table>
+        <div className="table-wrap"><table>
           <thead><tr><th>KID</th><th>算法</th><th>状态</th><th>创建时间</th><th>公钥（base64url）</th></tr></thead>
           <tbody>
             {data.kex_keys.map((k) => (
@@ -33,7 +33,7 @@ export default function Keys() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
         <p className="muted">私钥仅存于 KMS/Secret，此处只展示公钥指纹。</p>
       </div>
       <div className="panel">

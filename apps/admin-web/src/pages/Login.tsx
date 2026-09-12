@@ -34,9 +34,19 @@ export default function Login() {
 
   return (
     <div className="login-wrap">
-      <form className="login-box" onSubmit={submit}>
-        <h1><span className="logo-mark">◆</span> Vertify</h1>
-        <div className="sub">许可验证平台 · 管理控制台</div>
+      <div className="login-card">
+        <div className="login-brand">
+          <div className="login-brand-logo"><span className="logo-mark">◆</span> Vertify</div>
+          <div className="login-brand-title">商业级卡密验证<br />与授权管理平台</div>
+          <ul className="login-brand-points">
+            <li>卡密全生命周期：制卡、激活、续费、冻结、吊销</li>
+            <li>机器码绑定与心跳租约，服务端秒级吊销传播</li>
+            <li>应用层信封加密，抓包无明文卡密</li>
+          </ul>
+        </div>
+        <form className="login-box" onSubmit={submit}>
+          <h1><span className="logo-mark">◆</span> Vertify</h1>
+          <div className="sub">许可验证平台 · 管理控制台</div>
         <div className="field">
           <label>用户名</label>
           <input value={username} onChange={(e) => setUsername(e.target.value)} autoFocus autoComplete="username" />
@@ -60,7 +70,8 @@ export default function Login() {
         <button type="submit" disabled={busy || !username || !password}>
           {busy ? '登录中…' : needTotp ? '验证并登录' : '登录'}
         </button>
-      </form>
+        </form>
+      </div>
     </div>
   )
 }

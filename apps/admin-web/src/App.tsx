@@ -103,6 +103,8 @@ const NAV_GROUPS: NavGroup[] = [
 function Shell({ me, children }: { me: Me; children: React.ReactNode }) {
   const nav = useNavigate()
   const { pathname } = useLocation()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  useEffect(() => { setSidebarOpen(false) }, [pathname])
   const navItems = NAV_GROUPS.flatMap((g) => g.items)
   const current =
     navItems.find((n) => n.to === pathname) ||
@@ -115,7 +117,11 @@ function Shell({ me, children }: { me: Me; children: React.ReactNode }) {
   }
   return (
     <div className="layout">
-      <aside className="sidebar">
+      <div
+        className={`drawer-mask${sidebarOpen ? ' show' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+      <aside className={`sidebar${sidebarOpen ? ' open' : ''}`}>
         <div className="logo"><span className="logo-mark">◆</span> Vertify</div>
         {NAV_GROUPS.map((g) => (
           <div key={g.label || 'main'}>
@@ -138,7 +144,16 @@ function Shell({ me, children }: { me: Me; children: React.ReactNode }) {
       </aside>
       <div className="layout-main">
         <header className="topbar">
-          <div className="topbar-title">{crumb}</div>
+          <div className="topbar-left">
+            <button
+              className="ghost menu-btn"
+              aria-label="打开导航菜单"
+              onClick={() => setSidebarOpen((v) => !v)}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M2 3.5h12M2 8h12M2 12.5h12" /></svg>
+            </button>
+            <div className="topbar-title">{crumb}</div>
+          </div>
           <div className="topbar-user">
             <span className="topbar-name">{me.admin.display_name}</span>
             <span className="badge info">{ROLE_CN[me.admin.role] || me.admin.role}</span>

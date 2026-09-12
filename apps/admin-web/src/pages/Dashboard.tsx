@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { get } from '../api'
 import { DonutChart, TrendBarChart } from '../components/charts'
+import { IconAlert, IconCard, IconCardCheck, IconDevice, IconLayers, IconShield, IconTrend, IconUsers } from '../components/icons'
 
 interface Stats {
   products: number
@@ -23,26 +24,37 @@ export default function Dashboard() {
   if (err) return <div className="panel error-text">{err}</div>
   if (!st) return <div className="panel muted">加载中…</div>
   const cards = st.cards_by_status || {}
+  const stats: { label: string; value: string | number; cls?: string; icon: React.ReactNode }[] = [
+    { label: '当前在线设备', value: st.online_now, cls: 'ok', icon: <IconDevice /> },
+    { label: '有效许可证', value: st.active_licenses, icon: <IconShield /> },
+    { label: '7 日激活', value: st.activations_7d, cls: 'accent', icon: <IconTrend /> },
+    { label: '未使用卡密', value: cards.unused || 0, icon: <IconCard /> },
+    { label: '已激活卡密', value: cards.active || 0, icon: <IconCardCheck /> },
+    { label: '24h 风险事件', value: st.risk_events_24h, cls: 'err', icon: <IconAlert /> },
+    { label: '产品 / 套餐', value: `${st.products} / ${st.plans}`, icon: <IconLayers /> },
+    { label: '代理商', value: st.agents, icon: <IconUsers /> },
+  ]
   return (
     <>
       <h2 className="page-title">仪表盘</h2>
       <div className="stats">
-        <div className="stat glass"><div className="num ok">{st.online_now}</div><div className="label">当前在线设备</div></div>
-        <div className="stat glass"><div className="num">{st.active_licenses}</div><div className="label">有效许可证</div></div>
-        <div className="stat glass"><div className="num accent">{st.activations_7d}</div><div className="label">7 日激活</div></div>
-        <div className="stat glass"><div className="num">{cards.unused || 0}</div><div className="label">未使用卡密</div></div>
-        <div className="stat glass"><div className="num">{cards.active || 0}</div><div className="label">已激活卡密</div></div>
-        <div className="stat glass"><div className="num err">{st.risk_events_24h}</div><div className="label">24h 风险事件</div></div>
-        <div className="stat glass"><div className="num">{st.products} / {st.plans}</div><div className="label">产品 / 套餐</div></div>
-        <div className="stat glass"><div className="num">{st.agents}</div><div className="label">代理商</div></div>
+        {stats.map((s) => (
+          <div className="stat" key={s.label}>
+            <div className="stat-head">
+              <span className="stat-icon">{s.icon}</span>
+              <span className="stat-label">{s.label}</span>
+            </div>
+            <div className={`num ${s.cls || ''}`}>{s.value}</div>
+          </div>
+        ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div className="panel glass-panel">
-          <h3 style={{ marginTop: 0, fontWeight: 650, fontSize: 14 }}>近 7 日激活趋势</h3>
+      <div className="charts-grid">
+        <div className="panel">
+          <h3 className="panel-title">近 7 日激活趋势</h3>
           <TrendBarChart data={st.trend || []} />
         </div>
-        <div className="panel glass-panel">
-          <h3 style={{ marginTop: 0, fontWeight: 650, fontSize: 14 }}>卡密状态分布</h3>
+        <div className="panel">
+          <h3 className="panel-title">卡密状态分布</h3>
           <DonutChart data={cards} />
         </div>
       </div>

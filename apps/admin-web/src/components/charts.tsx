@@ -40,17 +40,17 @@ export function DonutChart({ data, size = 160, thickness = 24 }: {
               strokeLinecap="butt" />
           )
         })}
-        <text x={cx} y={cy - 4} textAnchor="middle" fontSize="22" fontWeight="700" fill="#111827"
+        <text x={cx} y={cy - 4} textAnchor="middle" fontSize="22" fontWeight="700" fill="#1a2233"
           transform={`rotate(90 ${cx} ${cy})`}>{total}</text>
-        <text x={cx} y={cy + 16} textAnchor="middle" fontSize="11" fill="#6b7280"
+        <text x={cx} y={cy + 16} textAnchor="middle" fontSize="11" fill="#7a8699"
           transform={`rotate(90 ${cx} ${cy})`}>总卡数</text>
       </svg>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {entries.map(([k, v]) => (
           <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5 }}>
             <span style={{ width: 10, height: 10, borderRadius: 3, background: STATUS_COLORS[k] || '#cbd5e1', flexShrink: 0 }} />
-            <span style={{ color: '#6b7280' }}>{STATUS_LABELS[k] || k}</span>
-            <span style={{ fontWeight: 600, color: '#111827' }}>{v}</span>
+            <span style={{ color: '#7a8699' }}>{STATUS_LABELS[k] || k}</span>
+            <span style={{ fontWeight: 600, color: '#1a2233' }}>{v}</span>
           </div>
         ))}
       </div>
@@ -90,11 +90,11 @@ export function TrendBarChart({ data, height = 180 }: {
             <g key={d.day}>
               <rect x={x} y={y} width={barW} height={Math.max(barH, 2)} rx={4} fill="url(#barGrad)" />
               {d.count > 0 && (
-                <text x={x + barW / 2} y={y - 5} textAnchor="middle" fontSize="11" fontWeight="600" fill="#111827">
+                <text x={x + barW / 2} y={y - 5} textAnchor="middle" fontSize="11" fontWeight="600" fill="#1a2233">
                   {d.count}
                 </text>
               )}
-              <text x={x + barW / 2} y={chartH + 16} textAnchor="middle" fontSize="11" fill="#6b7280">
+              <text x={x + barW / 2} y={chartH + 16} textAnchor="middle" fontSize="11" fill="#7a8699">
                 {dayLabel(d.day)}
               </text>
             </g>

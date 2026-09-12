@@ -39,7 +39,7 @@ export default function Audit() {
           <button className="ghost" onClick={load}>刷新</button>
         </div>
         {err && <div className="error-text">{err}</div>}
-        <table>
+        <div className="table-wrap"><table>
           <thead>
             <tr><th>时间</th><th>操作者</th><th>动作</th><th>对象</th><th>来源 IP</th><th>详情</th></tr>
           </thead>
@@ -58,7 +58,7 @@ export default function Audit() {
             ))}
             {items.length === 0 && <tr><td colSpan={6} className="muted">无记录</td></tr>}
           </tbody>
-        </table>
+        </table></div>
         <Pager total={total} limit={50} offset={offset} onPage={setOffset} />
       </div>
     </>

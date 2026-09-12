@@ -121,7 +121,7 @@ export default function Batches() {
           })()}
         </div>
         {err && <div className="error-text">{err}</div>}
-        <table>
+        <div className="table-wrap"><table>
           <thead>
             <tr><th>记录编号</th><th>产品</th><th>套餐</th><th>生成数量</th><th>卡密前缀</th><th>备注</th><th>创建时间</th></tr>
           </thead>
@@ -139,7 +139,7 @@ export default function Batches() {
             ))}
             {loading ? <tr><td colSpan={7} className="muted">加载中…</td></tr> : items.length === 0 && <tr><td colSpan={7} className="muted">暂无批次</td></tr>}
           </tbody>
-        </table>
+        </table></div>
         <Pager total={total} limit={50} offset={offset} onPage={setOffset} />
       </div>
       {show && (

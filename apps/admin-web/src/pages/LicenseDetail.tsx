@@ -114,7 +114,7 @@ export default function LicenseDetail() {
 
       <div className="panel">
         <h3 style={{ marginTop: 0 }}>绑定设备</h3>
-        <table>
+        <div className="table-wrap"><table>
           <thead>
             <tr><th>设备 ID</th><th>状态</th><th>信任级</th><th>绑定时间</th><th>最近心跳</th><th>IP</th><th>版本</th><th>操作</th></tr>
           </thead>
@@ -137,12 +137,12 @@ export default function LicenseDetail() {
             ))}
             {devices.length === 0 && <tr><td colSpan={8} className="muted">无设备</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       <div className="panel">
         <h3 style={{ marginTop: 0 }}>事件历史</h3>
-        <table>
+        <div className="table-wrap"><table>
           <thead><tr><th>时间</th><th>事件</th><th>操作者</th><th>详情</th></tr></thead>
           <tbody>
             {events.map((ev) => (
@@ -157,7 +157,7 @@ export default function LicenseDetail() {
             ))}
             {events.length === 0 && <tr><td colSpan={4} className="muted">无事件</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </>
   )

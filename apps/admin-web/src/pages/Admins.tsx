@@ -44,7 +44,7 @@ export default function Admins() {
           <span className="muted">新建账户首次登录必须改密；建议强制启用 MFA</span>
         </div>
         {err && <div className="error-text">{err}</div>}
-        <table>
+        <div className="table-wrap"><table>
           <thead>
             <tr><th>用户名</th><th>显示名</th><th>角色</th><th>MFA</th><th>状态</th><th>最近登录</th><th>操作</th></tr>
           </thead>
@@ -74,7 +74,7 @@ export default function Admins() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
       {show && (
         <Modal title="新建管理员" onClose={() => setShow(false)}>

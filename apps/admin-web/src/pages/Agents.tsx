@@ -62,7 +62,7 @@ export default function Agents() {
           <span className="muted">制卡扣费：套餐定价 &gt; 0 时，代理制卡按 数量×单价 扣余额</span>
         </div>
         {err && <div className="error-text">{err}</div>}
-        <table>
+        <div className="table-wrap"><table>
           <thead><tr><th>名称</th><th>余额</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
           <tbody>
             {items.map((a) => (
@@ -83,7 +83,7 @@ export default function Agents() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
       {bal && (
         <Modal title={`调整余额 — ${bal.agent.name}（当前 ${yuan(bal.agent.balance_cents)}）`} onClose={() => setBal(null)}>
@@ -117,7 +117,7 @@ export default function Agents() {
       )}
       {transactions && (
         <Modal title={`余额流水 — ${transactions.agent.name}`} onClose={() => setTransactions(null)}>
-          <table>
+          <div className="table-wrap"><table>
             <thead><tr><th>时间</th><th>类型</th><th>变动</th><th>变动后余额</th><th>备注</th></tr></thead>
             <tbody>
               {transactions.items.map((t) => <tr key={t.id}>
@@ -129,7 +129,7 @@ export default function Agents() {
               </tr>)}
               {transactions.items.length === 0 && <tr><td colSpan={5} className="muted">暂无流水</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Modal>
       )}
 

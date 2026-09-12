@@ -61,7 +61,7 @@ export default function Limits() {
           每个开放接口按「IP + 每分钟次数」限流，保存后 30 秒内生效。未配置的接口使用环境变量默认值。
         </p>
         {err && <div className="error-text">{err}</div>}
-        <table>
+        <div className="table-wrap"><table>
           <thead><tr><th>接口</th><th>当前配置（次/分钟）</th><th>默认值</th><th>操作</th></tr></thead>
           <tbody>
             {data.scopes.map((s) => (
@@ -80,7 +80,7 @@ export default function Limits() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </>
   )

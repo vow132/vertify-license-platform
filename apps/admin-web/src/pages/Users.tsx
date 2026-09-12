@@ -67,7 +67,7 @@ export default function Users() {
           <button className="ghost" onClick={load}>刷新</button>
         </div>
         {err && <div className="error-text">{err}</div>}
-        <table>
+        <div className="table-wrap"><table>
           <thead>
             <tr><th>用户名</th><th>状态</th><th>到期时间</th><th>最近登录</th><th>IP</th><th>操作</th></tr>
           </thead>
@@ -102,13 +102,13 @@ export default function Users() {
             ))}
             {items.length === 0 && <tr><td colSpan={6} className="muted">无用户</td></tr>}
           </tbody>
-        </table>
+        </table></div>
         <Pager total={total} limit={50} offset={offset} onPage={setOffset} />
       </div>
 
       {detail && (
         <Modal title={`用户 ${detail.user.username} 的日志`} onClose={() => setDetail(null)}>
-          <table>
+          <div className="table-wrap"><table>
             <thead><tr><th>时间</th><th>事件</th><th>IP</th></tr></thead>
             <tbody>
               {detail.logs.map((l) => (
@@ -120,7 +120,7 @@ export default function Users() {
               ))}
               {detail.logs.length === 0 && <tr><td colSpan={3} className="muted">无日志</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Modal>
       )}
 

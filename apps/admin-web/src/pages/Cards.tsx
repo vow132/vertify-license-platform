@@ -184,7 +184,7 @@ export default function Cards() {
           </div>
         )}
         {err && <div className="error-text">{err}</div>}
-        <table>
+        <div className="table-wrap"><table>
           <thead>
             <tr>
               <th style={{ width: 32 }}>
@@ -226,7 +226,7 @@ export default function Cards() {
             ))}
             {items.length === 0 && <tr><td colSpan={9} className="muted">无匹配卡密</td></tr>}
           </tbody>
-        </table>
+        </table></div>
         <Pager total={total} limit={50} offset={offset} onPage={setOffset} />
       </div>
 
